@@ -26,11 +26,9 @@ body {
   animation: floatIn 0.6s ease;
   position: relative;
   overflow: hidden;
-  /* padding убран, чтобы обложка была вплотную к краям */
 }
 @keyframes floatIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
 
-/* Внутренняя подложка для читаемости текста поверх обложки */
 .card-inner {
   background: rgba(10, 15, 30, 0.85); 
   padding: 24px;
@@ -142,7 +140,7 @@ body {
 /* === Админка === */
 .admin { max-width: 900px; margin: 0 auto; width: 100%; }
 .admin h1 { font-size: 24px; margin-bottom: 16px; }
-.tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
 .tab { background: none; border: 1px solid #2a3a5a; color: #889; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; }
 .tab--active { background: rgba(120,170,255,0.15); border-color: #7aa7ff; color: #a8c4ff; }
 .tab-panel.hidden { display: none; }
@@ -169,3 +167,18 @@ body {
 .chat-block__head small { color: #7a879e; margin-left: 6px; font-size: 13px; }
 .chat-block .chat__log { max-height: 180px; }
 .chat-block .chat__input { margin-top: 10px; }
+
+/* ИСПРАВЛЕНИЕ ДЛЯ ТЕЛЕФОНОВ (Кнопка не съезжает) */
+@media (max-width: 600px) {
+  .chat__input {
+    flex-direction: column; 
+    gap: 10px;
+  }
+  .chat__input input {
+    width: 100%;
+  }
+  .chat__input button {
+    width: 100%; 
+    padding: 14px;
+  }
+}
