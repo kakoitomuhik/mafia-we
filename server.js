@@ -4,30 +4,43 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const DATA_DIR = path.join(__dirname, 'data');
-const STATE_FILE = path.join(DATA_DIR, 'state.json');
-const CHAT_FILE = path.join(DATA_DIR, 'chat.json');
 const CARDS_FILE = path.join(__dirname, 'public', 'cards.json');
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
+// Память
+let state = {}; 
+let chat = {}; 
+let usedTokens = {}; 
+let currentNight = 1;
+let currentMode = 10; 
 
-const load = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
-const save = (f, d) => fs.writeFileSync(f, JSON.stringify(d, null, 2));
-
-let state = load(STATE_FILE, {});
-let chat = load(CHAT_FILE, {});
-
-// 12 случайных профессий (можешь заменить на свои)
 const PROFESSIONS = [
   "Инженер", "Архитектор", "Учитель", "Бухгалтер", 
   "Программист", "Электрик", "Сварщик", "Агроном", 
   "Геолог", "Машинист", "Библиотекарь", "Химик"
 ];
 
-// Функция перемешивания
+const QUESTS = [
+  "«Смутьян»: Добейся, чтобы против тебя проголосовало 0 человек.",
+  "«Молчун»: Промолчи всю игру (только жесты).",
+  "«Хроникёр»: Запиши и перескажи ведущему 3 самых громких обвинения за день.",
+  "«Дипломат»: Договорись с любым игроком о негласном союзе (сообщи ведущему в чат).",
+  "«Свидетель»: Угадай роль любого выбывшего игрока и отправь ответ в чат ведущему.",
+  "«Судья»: Добейся, чтобы в первый день казнили того, за кого ты проголосовал.",
+  "«Аналитик»: Правильно назови Лидера сопротивления (отправь в чат ведущему).",
+  "«Шептун»: Угадай, кто мафия, и отправь его имя в чат ведущему.",
+  "«Игрок»: На первом голосовании проголосуй за того, кто окажется мирным.",
+  "«Смельчак»: Выдвинь на казнь самого активного игрока за столом.",
+  "«Тень»: В течение дня соглашайся со всеми, но проголосуй против большинства.",
+  "«Поэт»: Отправь ведущему в чат короткий стих (2 строчки) о стеклянных стенах.",
+  "«Шпион»: Узнай профессию (алиби) любого игрока и отправь её в чат ведущему.",
+  "«Наблюдатель»: Отправь в чат ведущему имя самого тихого игрока за столом.",
+  "«Инженер»: Отправь в чат ведущему «план ремонта Интеграла».",
+  "«Хранитель времени»: Проживи до конца игры, не нарушив правил."
+];
+
 function shuffle(array) {
   let currentIndex = array.length, randomIndex;
   while (currentIndex !== 0) {
@@ -38,60 +51,94 @@ function shuffle(array) {
   return array;
 }
 
-// Главная функция получения карт
 function getCardsWithProfessions() {
-  let cards = JSON.parse(fs.readFileSync(CARDS_FILE, 'utf8'));
+  let allCards = JSON.parse(fs.readFileSync(CARDS_FILE, 'utf8'));
+  let selectedCards = [];
   
-  // Проверяем, есть ли хоть одна карта без профессии
-  const hasMissingProfession = cards.some(c => !c.alibiProfession);
-
-  if (hasMissingProfession) {
-    const shuffled = shuffle([...PROFESSIONS]);
-    cards.forEach((card, index) => {
-      if (!card.alibiProfession) {
-        card.alibiProfession = shuffled[index % shuffled.length];
-      }
-    });
-    // Сохраняем в файл, чтобы профессии закрепились
-    fs.writeFileSync(CARDS_FILE, JSON.stringify(cards, null, 2));
+  if (currentMode === 10) {
+    selectedCards = allCards.filter(c => c.id <= 10); 
+  } else if (currentMode === 15) {
+    selectedCards = allCards.slice(0, 15);
+  } else {
+    selectedCards = allCards.slice(0, 20);
   }
 
-  return cards;
+  const hasMissingProfession = selectedCards.some(c => !c.alibiProfession);
+  if (hasMissingProfession) {
+    const shuffledProfs = shuffle([...PROFESSIONS]);
+    selectedCards.forEach((card, index) => {
+      if (!card.alibiProfession) {
+        card.alibiProfession = shuffledProfs[index % shuffledProfs.length];
+      }
+    });
+  }
+
+  selectedCards.forEach(card => {
+    if ((card.role === "Строитель" || card.role === "Икона сопротивления") && !card.quest) {
+      card.quest = QUESTS[Math.floor(Math.random() * QUESTS.length)];
+    }
+  });
+
+  if (!selectedCards.some(c => c.isAvenger)) {
+    const candidates = selectedCards.filter(c => c.role === "Строитель");
+    if (candidates.length > 0) {
+      const chosenOne = candidates[Math.floor(Math.random() * candidates.length)];
+      const cardToModify = selectedCards.find(c => c.id === chosenOne.id);
+      if (cardToModify) cardToModify.isAvenger = true;
+    }
+  }
+
+  return selectedCards;
 }
 
-// --- API ---
-app.get('/api/cards', (_, res) => {
+app.get('/api/cards', (req, res) => {
+  const token = req.query.t;
+  const deviceId = req.query.device;
+
+  if (token && deviceId) {
+    if (usedTokens[token] && usedTokens[token] !== deviceId) {
+      return res.status(403).json({ error: 'used' });
+    }
+    usedTokens[token] = deviceId;
+  }
   res.json(getCardsWithProfessions());
 });
 
-app.get('/api/state', (_, res) => res.json(state));
+app.get('/api/state', (_, res) => res.json({ cards: state, night: currentNight, mode: currentMode }));
+
 app.post('/api/state/:id', (req, res) => {
   const id = req.params.id;
   state[id] = { ...(state[id] || {}), ...req.body };
-  save(STATE_FILE, state);
   res.json(state[id]);
 });
 
-app.post('/api/reset', (_, res) => {
-  state = {}; chat = {};
-  save(STATE_FILE, state); save(CHAT_FILE, chat);
-  
-  // Очищаем профессии, чтобы при следующем старте они перемешались заново
-  let cards = JSON.parse(fs.readFileSync(CARDS_FILE, 'utf8'));
-  cards.forEach(c => delete c.alibiProfession);
-  fs.writeFileSync(CARDS_FILE, JSON.stringify(cards, null, 2));
+app.post('/api/set-mode', (req, res) => {
+  currentMode = req.body.mode;
+  res.json({ mode: currentMode });
+});
 
+app.post('/api/next-night', (_, res) => {
+  currentNight++;
+  res.json({ night: currentNight });
+});
+
+app.post('/api/reset', (_, res) => {
+  state = {}; chat = {}; usedTokens = {}; currentNight = 1;
+  let allCards = JSON.parse(fs.readFileSync(CARDS_FILE, 'utf8'));
+  allCards.forEach(c => {
+    delete c.alibiProfession;
+    delete c.quest;
+    delete c.isAvenger;
+  });
   res.json({ ok: true });
 });
 
-// Чат
 app.get('/api/chat/:token', (req, res) => res.json(chat[req.params.token] || []));
 app.post('/api/chat/:token', (req, res) => {
   const text = (req.body.text || '').trim();
   if (!text) return res.status(400).json({ error: 'empty' });
   const t = req.params.token;
   (chat[t] = chat[t] || []).push({ from: 'player', text, ts: Date.now() });
-  save(CHAT_FILE, chat);
   res.json({ ok: true });
 });
 app.post('/api/chat/:token/reply', (req, res) => {
@@ -99,13 +146,11 @@ app.post('/api/chat/:token/reply', (req, res) => {
   if (!text) return res.status(400).json({ error: 'empty' });
   const t = req.params.token;
   (chat[t] = chat[t] || []).push({ from: 'admin', text, ts: Date.now() });
-  save(CHAT_FILE, chat);
   res.json({ ok: true });
 });
 app.get('/api/chat', (_, res) => {
   const summary = getCardsWithProfessions().map(c => ({
-    token: c.token, cipher: c.cipher, role: c.role,
-    alibiProfession: c.alibiProfession,
+    token: c.token, cipher: c.cipher, role: c.role, alibiProfession: c.alibiProfession,
     messages: chat[c.token] || []
   }));
   res.json(summary);
