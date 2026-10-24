@@ -24,6 +24,12 @@
     let glitchInterval = null;
     let userGender = localStorage.getItem('gender_' + token);
 
+    let deviceId = localStorage.getItem('device_id');
+    if (!deviceId) {
+      deviceId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem('device_id', deviceId);
+    }
+
     if (!token) {
       app.innerHTML = '<p style="color:#889; padding: 20px; text-align:center; font-size: 18px;">Токен не найден.</p>';
     } else {
@@ -32,7 +38,20 @@
 
     async function start() {
       try {
-        const res = await fetch('/api/cards');
+        const res = await fetch(`/api/cards?t=${token}&device=${deviceId}`);
+        
+        if (res.status === 403) {
+          app.innerHTML = `
+            <div class="card" style="text-align: center;">
+              <div class="card-inner">
+                <h2 style="color: #ff5252; margin-bottom: 20px;">Доступ заблокирован</h2>
+                <p style="color: #e8eef7; font-size: 16px; line-height: 1.5;">Этот QR-код уже был отсканирован другим устройством.</p>
+              </div>
+            </div>
+          `;
+          return;
+        }
+
         const cards = await res.json();
         card = cards.find(c => c.token === token);
         
@@ -49,17 +68,19 @@
         }
       } catch (err) {
         app.innerHTML = '<p style="color:red; padding: 20px; text-align:center; font-size: 18px;">Ошибка загрузки данных.</p>';
-        console.error(err);
       }
     }
 
     function renderGenderSelect() {
+      document.body.style.backgroundImage = "url('bg-alive.png')"; 
+      document.body.style.backgroundSize = "cover";
+      document.body.style.backgroundPosition = "center";
+
       app.innerHTML = `
-        <div class="card" style="text-align: center; background-image: url('bg-alive.png'); background-size: cover; background-position: center;">
+        <div class="card" style="text-align: center;">
           <div class="card-inner">
             <div class="card__cipher">Идентификация нумера</div>
             <h2 style="margin: 20px 0; color: #a8c4ff;">Укажи свой пол</h2>
-            <p style="color: #9aa8c0; margin-bottom: 30px; font-size: 15px;">Это нужно для корректного отображения текста в карте.</p>
             <div style="display: flex; gap: 15px; justify-content: center;">
               <button onclick="setGender('male')" class="btn-gender">Мужчина</button>
               <button onclick="setGender('female')" class="btn-gender">Женщина</button>
@@ -72,6 +93,10 @@
     function setGender(gender) {
       userGender = gender;
       localStorage.setItem('gender_' + token, gender);
+      fetch(`/api/state/${card.id}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ online: true })
+      });
       start();
     }
 
@@ -87,7 +112,7 @@
         try {
           const stateRes = await fetch('/api/state');
           const stateData = await stateRes.json();
-          const st = stateData[card.id] || { dead: false, personalWinDone: false };
+          const st = (stateData.cards && stateData.cards[card.id]) || { dead: false, personalWinDone: false };
           
           if (st.dead !== currentDeadStatus) {
             currentDeadStatus = st.dead;
@@ -102,44 +127,36 @@
     async function renderCard() {
       const stateRes = await fetch('/api/state');
       const stateData = await stateRes.json();
-      const st = stateData[card.id] || { dead: false, personalWinDone: false };
+      const allStates = stateData.cards || {};
+      const st = allStates[card.id] || { dead: false, personalWinDone: false };
       
       currentDeadStatus = st.dead;
-
       const bgImage = st.dead ? 'bg-dead.png' : 'bg-alive.png';
       const isFemale = userGender === 'female';
 
-      // --- ЛОГИКА ГЕНДЕРА ---
-let displayRole = card.role;
-      let displayAlibi = card.alibiProfession;
-      let displayGoal = card.goalName;
       let sideText = "ИНТЕГРАЛ";
       let sideClass = "side--integral";
-
       if (card.role === "Диссидент" || card.role === "Лидер сопротивления") {
+        sideText = "СОПРОТИВЛЕНИЕ";
         sideClass = "side--resistance"; 
       }
 
-      // Вытаскиваем правильный текст из объекта (m или f)
       let displayTask = card.task;
       let displayLegend = card.legend;
-      
-      if (typeof card.task === 'object' && card.task !== null) {
-        displayTask = isFemale ? card.task.f : card.task.m;
-      }
-      if (typeof card.legend === 'object' && card.legend !== null) {
-        displayLegend = isFemale ? card.legend.f : card.legend.m;
-      }
+      if (typeof card.task === 'object' && card.task !== null) displayTask = isFemale ? card.task.f : card.task.m;
+      if (typeof card.legend === 'object' && card.legend !== null) displayLegend = isFemale ? card.legend.f : card.legend.m;
+
+      let displayRole = card.role;
+      let displayAlibi = card.alibiProfession;
+      let displayGoal = card.goalName;
 
       if (isFemale) {
         if (card.role === "Строитель") displayRole = "Строительница";
         if (card.role === "Диссидент") displayRole = "Диссидентка";
         if (card.role === "Хранитель") displayRole = "Хранительница";
-        
         if (card.alibiProfession === "Учитель") displayAlibi = "Учительница";
         if (card.alibiProfession === "Сварщик") displayAlibi = "Сварщица";
         if (card.alibiProfession === "Программист") displayAlibi = "Программистка";
-        
         if (card.goalName === "«Поэт»") displayGoal = "«Поэтесса»";
         if (card.goalName === "«Пропагандист»") displayGoal = "«Пропагандистка»";
         if (card.goalName === "«Порядочный гражданин»") displayGoal = "«Порядочная гражданка»";
@@ -147,12 +164,8 @@ let displayRole = card.role;
         if (card.goalName === "«Неуловимый»") displayGoal = "«Неуловимая»";
       }
 
-      // Меняем цитату Пацифиста
       let displayQuote = card.quote;
-      if (card.alibiProfession === "Библиотекарь") {
-        displayQuote = "Любовь важнее закона.";
-      }
-
+      if (card.alibiProfession === "Библиотекарь") displayQuote = "Любовь важнее закона.";
       const wordDeadFinal = isFemale ? 'дезинтегрирована' : 'дезинтегрирован';
       const wordProfession = isFemale ? 'Специальность' : 'Профессия';
 
@@ -167,6 +180,9 @@ let displayRole = card.role;
               <div class="card__role">${displayRole}</div>
               <div class="card__side ${sideClass}">${sideText}</div>
               <div class="card__alibi"><strong>${wordProfession}:</strong> ${displayAlibi}</div>
+              
+              ${card.quest ? `<div class="card__goal" style="background: rgba(80,255,160,0.1); border-color: #69f0ae;"><h3 style="color:#69f0ae;">Квест</h3><p>${card.quest}</p></div>` : ''}
+
               <div class="card__goal">
                 <h3>Цель ${displayGoal}</h3>
                 <p>${displayTask}</p>
@@ -177,24 +193,33 @@ let displayRole = card.role;
               <div class="card__portrait dead-portrait">
                 <img id="portrait-img" class="main-img" src="" alt="Портрет" style="width:100%; height:100%; object-fit:cover; border-radius: 16px;">
               </div>
-              <div class="banner-dead">
-                <strong>Ты ${wordDeadFinal}.</strong><br><br>
-                Ты больше не можешь говорить или писать.<br>
-                Но твой голос в Стеклянном зале всё ещё слышен — <strong>ты можешь голосовать.</strong>
-              </div>
+              
+              ${card.isAvenger && !st.avengerUsed ? `
+                <div class="banner-dead" style="background: rgba(200,0,0,0.3); border-color: #ff0000;">
+                  <strong>Ты пал. Но Интеграл не прощает.</strong><br><br>
+                  Ты оказался скрытым Мстителем. Выбери того, кто уйдет с тобой:
+                  <div style="margin-top: 15px; display: flex; flex-direction: column; gap: 8px;" id="avenger-targets"></div>
+                </div>
+              ` : `
+                <div class="banner-dead">
+                  <strong>Ты ${wordDeadFinal}.</strong><br><br>
+                  Ты больше не можешь говорить или писать.<br>
+                  Но твой голос в Стеклянном зале всё ещё слышен — <strong>ты можешь голосовать.</strong>
+                </div>
+              `}
             `}
 
             <div class="chat">
-              <h4>Спросить Благодетеля</h4>
+              <h4>Связаться с Благодетелем</h4>
               <div class="chat__log" id="log"><div class="chat__empty">Загрузка...</div></div>
               <div class="chat__input">
-                <input id="msg" placeholder="Вопрос по правилам…" />
+                <input id="msg" placeholder="Вопрос или квест…" />
                 <button id="send">Отправить</button>
               </div>
             </div>
             
             <div style="margin-top: 15px; text-align: center;">
-<button onclick="resetGender()" style="background:none; border:none; color:#55617a; font-size:12px; cursor:pointer; text-decoration: underline;">Сменить пол</button>
+              <button onclick="resetGender()" style="background:none; border:none; color:#55617a; font-size:12px; cursor:pointer; text-decoration: underline;">Сменить пол</button>
             </div>
           </div>
         </div>
@@ -208,6 +233,38 @@ let displayRole = card.role;
         }
       }
 
+      if (st.dead && card.isAvenger && !st.avengerUsed) {
+        const targetsBox = document.getElementById('avenger-targets');
+        if (targetsBox) {
+          try {
+            const allCardsRes = await fetch('/api/cards');
+            const allCards = await allCardsRes.json();
+            const livePlayers = allCards.filter(c => c.id !== card.id && !(allStates[c.id] || {}).dead);
+            
+            livePlayers.forEach(p => {
+              const btn = document.createElement('button');
+              btn.className = 'btn-gender';
+              btn.style.padding = '10px';
+              btn.style.fontSize = '14px';
+              btn.innerText = `${p.cipher}`;
+              btn.onclick = async () => {
+                if (!confirm(`Забрать с собой нумера ${p.cipher}?`)) return;
+                await fetch(`/api/state/${p.id}`, {
+                  method: 'POST', headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ dead: true })
+                });
+                await fetch(`/api/state/${card.id}`, {
+                  method: 'POST', headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ avengerUsed: true })
+                });
+                location.reload(); 
+              };
+              targetsBox.appendChild(btn);
+            });
+          } catch(e) {}
+        }
+      }
+
       if (glitchInterval) clearInterval(glitchInterval);
       if (st.dead) {
         const img = document.getElementById('portrait-img');
@@ -216,7 +273,6 @@ let displayRole = card.role;
             const isRed = Math.random() > 0.5;
             const offsetX = (Math.random() - 0.5) * 10;
             const offsetY = (Math.random() - 0.5) * 4;
-            
             img.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
             if (isRed) {
               img.style.filter = "sepia(1) hue-rotate(-50deg) saturate(10) drop-shadow(2px 0 0 red)";
@@ -248,7 +304,6 @@ let displayRole = card.role;
     async function loadChat() {
       const log = document.getElementById('log');
       if (!log) return;
-      
       try {
         const msgs = await (await fetch(`/api/chat/${token}`)).json();
         if (msgs && msgs.length > 0) {
