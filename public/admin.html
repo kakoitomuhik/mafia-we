@@ -16,21 +16,31 @@
       <button class="tab" id="btn-notes">Заметки</button>
     </div>
     
-    <!-- Вкладка Игроки -->
     <div id="tab-players" style="display: block;">
+      <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center; background: rgba(120,170,255,0.1); padding: 10px; border-radius: 8px; flex-wrap: wrap;">
+        <label style="color: #a8c4ff; font-weight: bold;">Режим игры:</label>
+        <select id="mode-select" style="padding: 8px; border-radius: 6px; background: #1a2540; color: white; border: 1px solid #4a7fff;">
+          <option value="10">10 игроков</option>
+          <option value="15">15 игроков (+ Резня)</option>
+          <option value="20">20 игроков (+ Резня)</option>
+        </select>
+        <button id="next-night" class="btn-ghost" style="border-color: #4a7fff; color: #4a7fff; margin: 0;">Следующая ночь 🌙</button>
+      </div>
+
       <div id="list" class="admin__list">Загрузка...</div>
-      <button id="reset" class="btn-ghost">Сбросить всё</button>
+      
+      <div style="margin-top: 15px;">
+        <button id="reset" class="btn-ghost" style="border-color: #ff5252; color: #ff5252; width: 100%;">Сбросить игру (сменить роли)</button>
+      </div>
     </div>
     
-    <!-- Вкладка Вопросы -->
     <div id="tab-chats" style="display: none;">
       <div id="chats" class="chats">Загрузка...</div>
     </div>
 
-    <!-- Вкладка Заметки (одно большое поле) -->
     <div id="tab-notes" style="display: none;">
       <div class="notes-block" style="max-width: 100%;">
-        <textarea class="notes-textarea" id="global-notes" style="min-height: 400px; font-size: 16px; line-height: 1.6;" placeholder="Записывайте сюда всё: кто что делал ночью, кого проверил Хранитель, кого лечил Врач, какие цели выполнены..."></textarea>
+        <textarea class="notes-textarea" id="global-notes" style="min-height: 400px; font-size: 16px; line-height: 1.6;" placeholder="Записывайте сюда всё..."></textarea>
         <button class="btn-save-notes" onclick="saveGlobalNotes()" style="padding: 12px 24px; font-size: 16px;">Сохранить заметки</button>
       </div>
     </div>
@@ -40,11 +50,13 @@
     const listEl = document.getElementById('list');
     const chatsEl = document.getElementById('chats');
     const globalNotesEl = document.getElementById('global-notes');
+    const modeSelect = document.getElementById('mode-select');
+    
     let cardsData = [];
-    let stateData = {};
+    let stateData = { cards: {}, night: 1, mode: 10 };
     let chatData = [];
+    let lastChatJSON = '';
 
-    // Переключение вкладок
     function switchTab(tabName) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab--active'));
       document.getElementById('tab-players').style.display = 'none';
@@ -60,7 +72,6 @@
       } else if (tabName === 'notes') {
         document.getElementById('btn-notes').classList.add('tab--active');
         document.getElementById('tab-notes').style.display = 'block';
-        // Загружаем общие заметки при открытии вкладки
         globalNotesEl.value = stateData['global_notes'] || "";
       }
     }
@@ -69,36 +80,40 @@
     document.getElementById('btn-chats').onclick = () => switchTab('chats');
     document.getElementById('btn-notes').onclick = () => switchTab('notes');
 
-    // Загрузка данных
     async function loadData() {
       try {
-        const resCards = await fetch('/api/cards');
-        cardsData = await resCards.json();
+        cardsData = await (await fetch('/api/cards')).json();
+        stateData = await (await fetch('/api/state')).json();
         
-        const resState = await fetch('/api/state');
-        stateData = await resState.json();
+        const newChatData = await (await fetch('/api/chat')).json();
         
-        const resChat = await fetch('/api/chat');
-        chatData = await resChat.json();
+        const newChatJSON = JSON.stringify(newChatData);
+        if (newChatJSON !== lastChatJSON) {
+          chatData = newChatData;
+          lastChatJSON = newChatJSON;
+          renderChats();
+        }
 
+        modeSelect.value = stateData.mode || 10;
         renderPlayers();
-        renderChats();
       } catch (e) {
-        listEl.innerHTML = '<span style="color:red">Ошибка загрузки данных. Проверь сервер.</span>';
+        listEl.innerHTML = '<span style="color:red">Ошибка загрузки данных.</span>';
       }
     }
 
-    // Отрисовка Игроков
     function renderPlayers() {
       listEl.innerHTML = cardsData.map(c => {
-        const st = stateData[c.id] || { dead: false, personalWinDone: false };
+        const st = stateData.cards[c.id] || { dead: false, personalWinDone: false };
+        const statusDot = st.online ? '<span style="color:#69f0ae; margin-right:8px;">●</span>' : '<span style="color:#55617a; margin-right:8px;">○</span>';
+        const extraInfo = c.quest ? ` | Квест: ${c.quest}` : '';
+        
         return `
           <div class="admin__row">
             <div>
-              <strong>${c.cipher} · ${c.role}</strong>
-              <small>${c.alibiProfession} · цель ${c.goalName}</small>
+              <strong>${statusDot} ${c.cipher} · ${c.role}</strong>
+              <small>${c.alibiProfession || '—'}${extraInfo}</small>
             </div>
-<button class="btn-dead ${st.dead ? 'on' : ''}" onclick="toggleState(${c.id}, 'dead', ${!st.dead})">
+            <button class="btn-dead ${st.dead ? 'on' : ''}" onclick="toggleState(${c.id}, 'dead', ${!st.dead})">
               ${st.dead ? 'Мёртв' : 'Жив'}
             </button>
             <button class="btn-win ${st.personalWinDone ? 'on' : ''}" onclick="toggleState(${c.id}, 'personalWinDone', ${!st.personalWinDone})">
@@ -109,34 +124,18 @@
       }).join('');
     }
 
-    // Сохранение общих заметок
-    async function saveGlobalNotes() {
-      const text = globalNotesEl.value;
-      await fetch(`/api/state/global_notes`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notes: text })
-      });
-      
-      // Визуальный отклик
-      const btn = event.target;
-      const oldText = btn.innerText;
-      btn.innerText = "Сохранено!";
-      btn.style.background = "rgba(80,255,160,0.2)";
-      setTimeout(() => {
-        btn.innerText = oldText;
-        btn.style.background = "";
-      }, 1500);
-    }
-
-    // Отрисовка Чатов
     function renderChats() {
       const withMsgs = chatData.filter(c => c.messages && c.messages.length > 0);
       
       if (withMsgs.length === 0) {
-        chatsEl.innerHTML = '<div style="color:#7a879e; padding:20px; text-align:center;">Пока никто не задал вопросов.</div>';
+        chatsEl.innerHTML = '<div style="color:#7a879e; padding:20px; text-align:center; font-size: 16px;">Пока никто не задал вопросов.</div>';
         return;
       }
+
+      const activeElement = document.activeElement;
+      const isTyping = activeElement && activeElement.tagName === 'INPUT';
+      const typingId = isTyping ? activeElement.id : null;
+      const typingValue = isTyping ? activeElement.value : '';
 
       chatsEl.innerHTML = withMsgs.map(c => {
         const msgsHtml = c.messages.map(m => `
@@ -146,66 +145,88 @@
           </div>
         `).join('');
 
+        const inputValue = (typingId === `reply-${c.token}`) ? typingValue : '';
+
         return `
           <div class="chat-block">
             <div class="chat-block__head">
-              <strong>${c.cipher} · ${c.role}</strong> <small>(${c.alibiProfession})</small>
+              <strong>${c.cipher} · ${c.role}</strong> <small>(${c.alibiProfession || '—'})</small>
             </div>
             <div class="chat__log" style="max-height:200px; overflow-y:auto; margin-bottom:10px;">
               ${msgsHtml}
             </div>
             <div class="chat__input">
-              <input type="text" id="reply-${c.token}" placeholder="Ответить..." />
+              <input type="text" id="reply-${c.token}" value="${inputValue}" placeholder="Ответить..." />
               <button onclick="sendReply('${c.token}')">Ответить</button>
             </div>
           </div>
         `;
       }).join('');
+
+      if (isTyping && typingId) {
+        const el = document.getElementById(typingId);
+        if (el) {
+          el.focus();
+          el.setSelectionRange(el.value.length, el.value.length); 
+        }
+      }
     }
 
     async function sendReply(token) {
       const inp = document.getElementById('reply-' + token);
       const text = inp.value.trim();
       if (!text) return;
-      
       await fetch(`/api/chat/${token}/reply`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text })
       });
       loadData();
     }
 
+    async function saveGlobalNotes() {
+      const text = globalNotesEl.value;
+      await fetch(`/api/state/global_notes`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: text })
+      });
+      const btn = event.target;
+      const oldText = btn.innerText;
+      btn.innerText = "Сохранено!";
+      btn.style.background = "rgba(80,255,160,0.2)";
+      setTimeout(() => { btn.innerText = oldText; btn.style.background = ""; }, 1500);
+    }
+
     async function toggleState(id, field, value) {
       await fetch(`/api/state/${id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: value })
       });
       loadData();
     }
 
+    modeSelect.onchange = async (e) => {
+      const newMode = e.target.value;
+      await fetch('/api/set-mode', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: parseInt(newMode) })
+      });
+      loadData();
+    };
+
+    document.getElementById('next-night').onclick = async () => {
+      await fetch('/api/next-night', { method: 'POST' });
+      loadData();
+    };
+
     document.getElementById('reset').onclick = async () => {
-      if (!confirm('Точно сбросить статусы и удалить сообщения?')) return;
+      if (!confirm('Сбросить игру и раздать новые роли?')) return;
+      lastChatJSON = ''; 
       await fetch('/api/reset', { method: 'POST' });
       loadData();
     };
 
     loadData();
-    
-    // Автообновление
-    setInterval(async () => {
-      const notesTab = document.getElementById('tab-notes');
-      if (notesTab.style.display !== 'none') return; // Не обновляем, если пишем заметки
-
-      const resState = await fetch('/api/state');
-      stateData = await resState.json();
-      renderPlayers();
-      
-      const resChat = await fetch('/api/chat');
-      chatData = await resChat.json();
-      renderChats();
-    }, 3000);
+    setInterval(loadData, 3000);
   </script>
 </body>
 </html>
