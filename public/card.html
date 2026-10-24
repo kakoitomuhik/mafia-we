@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#1a2540">
+  <title>Мы — Карта</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app" class="page">
+    <div style="color: white; text-align: center; margin-top: 50px;">Загрузка...</div>
+  </div>
+  
+  <script>
+    const token = new URLSearchParams(location.search).get('t');
+    const app = document.getElementById('app');
+    let card = null;
+    let currentDeadStatus = false;
+    let glitchInterval = null;
+    let userGender = localStorage.getItem('gender_' + token);
+
+    if (!token) {
+      app.innerHTML = '<p style="color:#889; padding: 20px; text-align:center; font-size: 18px;">Токен не найден.</p>';
+    } else {
+      start();
+    }
+
+    async function start() {
+      try {
+        const res = await fetch('/api/cards');
+        const cards = await res.json();
+        card = cards.find(c => c.token === token);
+        
+        if (!card) {
+          app.innerHTML = '<p style="color:#889; padding: 20px; text-align:center; font-size: 18px;">Карта не найдена.</p>';
+          return;
+        }
+
+        if (!userGender) {
+          renderGenderSelect();
+        } else {
+          await renderCard();
+          startIntervals();
+        }
+      } catch (err) {
+        app.innerHTML = '<p style="color:red; padding: 20px; text-align:center; font-size: 18px;">Ошибка загрузки данных.</p>';
+        console.error(err);
+      }
+    }
+
+    function renderGenderSelect() {
+      app.innerHTML = `
+        <div class="card" style="text-align: center; background-image: url('bg-alive.png'); background-size: cover; background-position: center;">
+          <div class="card-inner">
+            <div class="card__cipher">Идентификация нумера</div>
+            <h2 style="margin: 20px 0; color: #a8c4ff;">Укажи свой пол</h2>
+            <p style="color: #9aa8c0; margin-bottom: 30px; font-size: 15px;">Это нужно для корректного отображения текста в карте.</p>
+            <div style="display: flex; gap: 15px; justify-content: center;">
+              <button onclick="setGender('male')" class="btn-gender">Мужчина</button>
+              <button onclick="setGender('female')" class="btn-gender">Женщина</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function setGender(gender) {
+      userGender = gender;
+      localStorage.setItem('gender_' + token, gender);
+      start();
+    }
+
+    function resetGender() {
+      localStorage.removeItem('gender_' + token);
+      userGender = null;
+      if (glitchInterval) clearInterval(glitchInterval);
+      renderGenderSelect();
+    }
+
+    function startIntervals() {
+      setInterval(async () => {
+        try {
+          const stateRes = await fetch('/api/state');
+          const stateData = await stateRes.json();
+          const st = stateData[card.id] || { dead: false, personalWinDone: false };
+          
+          if (st.dead !== currentDeadStatus) {
+            currentDeadStatus = st.dead;
+            await renderCard();
+          }
+        } catch (e) {}
+      }, 2000);
+
+      setInterval(loadChat, 2000);
+    }
+
+    async function renderCard() {
+      const stateRes = await fetch('/api/state');
+      const stateData = await stateRes.json();
+      const st = stateData[card.id] || { dead: false, personalWinDone: false };
+      
+      currentDeadStatus = st.dead;
+
+      const bgImage = st.dead ? 'bg-dead.png' : 'bg-alive.png';
+      const isFemale = userGender === 'female';
+
+      // --- ЛОГИКА ГЕНДЕРА ---
+let displayRole = card.role;
+      let displayAlibi = card.alibiProfession;
+      let displayGoal = card.goalName;
+      let sideText = "ИНТЕГРАЛ";
+      let sideClass = "side--integral";
+
+      if (card.role === "Диссидент" || card.role === "Лидер сопротивления") {
+        sideClass = "side--resistance"; 
+      }
+
+      // Вытаскиваем правильный текст из объекта (m или f)
+      let displayTask = card.task;
+      let displayLegend = card.legend;
+      
+      if (typeof card.task === 'object' && card.task !== null) {
+        displayTask = isFemale ? card.task.f : card.task.m;
+      }
+      if (typeof card.legend === 'object' && card.legend !== null) {
+        displayLegend = isFemale ? card.legend.f : card.legend.m;
+      }
+
+      if (isFemale) {
+        if (card.role === "Строитель") displayRole = "Строительница";
+        if (card.role === "Диссидент") displayRole = "Диссидентка";
+        if (card.role === "Хранитель") displayRole = "Хранительница";
+        
+        if (card.alibiProfession === "Учитель") displayAlibi = "Учительница";
+        if (card.alibiProfession === "Сварщик") displayAlibi = "Сварщица";
+        if (card.alibiProfession === "Программист") displayAlibi = "Программистка";
+        
+        if (card.goalName === "«Поэт»") displayGoal = "«Поэтесса»";
+        if (card.goalName === "«Пропагандист»") displayGoal = "«Пропагандистка»";
+        if (card.goalName === "«Порядочный гражданин»") displayGoal = "«Порядочная гражданка»";
+        if (card.goalName === "«Пацифист»") displayGoal = "«Пацифистка»";
+        if (card.goalName === "«Неуловимый»") displayGoal = "«Неуловимая»";
+      }
+
+      // Меняем цитату Пацифиста
+      let displayQuote = card.quote;
+      if (card.alibiProfession === "Библиотекарь") {
+        displayQuote = "Любовь важнее закона.";
+      }
+
+      const wordDeadFinal = isFemale ? 'дезинтегрирована' : 'дезинтегрирован';
+      const wordProfession = isFemale ? 'Специальность' : 'Профессия';
+
+      app.innerHTML = `
+        <div class="card ${st.dead ? 'card--dead' : ''}" style="background-image: url('${bgImage}'); background-size: cover; background-position: center;">
+          <div class="card-inner">
+            ${!st.dead ? `
+              <div class="card__cipher">Нумер ${card.cipher}</div>
+              <div class="card__portrait">
+                <img id="portrait-img" src="" alt="Портрет" style="width:100%; height:100%; object-fit:cover; border-radius: 16px;">
+              </div>
+              <div class="card__role">${displayRole}</div>
+              <div class="card__side ${sideClass}">${sideText}</div>
+              <div class="card__alibi"><strong>${wordProfession}:</strong> ${displayAlibi}</div>
+              <div class="card__goal">
+                <h3>Цель ${displayGoal}</h3>
+                <p>${displayTask}</p>
+              </div>
+              <div class="card__legend">${displayLegend}</div>
+              <div class="card__quote">«${displayQuote}»</div>
+            ` : `
+              <div class="card__portrait dead-portrait">
+                <img id="portrait-img" class="main-img" src="" alt="Портрет" style="width:100%; height:100%; object-fit:cover; border-radius: 16px;">
+              </div>
+              <div class="banner-dead">
+                <strong>Ты ${wordDeadFinal}.</strong><br><br>
+                Ты больше не можешь говорить или писать.<br>
+                Но твой голос в Стеклянном зале всё ещё слышен — <strong>ты можешь голосовать.</strong>
+              </div>
+            `}
+
+            <div class="chat">
+              <h4>Спросить Благодетеля</h4>
+              <div class="chat__log" id="log"><div class="chat__empty">Загрузка...</div></div>
+              <div class="chat__input">
+                <input id="msg" placeholder="Вопрос по правилам…" />
+                <button id="send">Отправить</button>
+              </div>
+            </div>
+            
+            <div style="margin-top: 15px; text-align: center;">
+<button onclick="resetGender()" style="background:none; border:none; color:#55617a; font-size:12px; cursor:pointer; text-decoration: underline;">Сменить пол</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      if (card.image) {
+        const imgEl = document.getElementById('portrait-img');
+        if (imgEl) {
+          const genderSuffix = isFemale ? '_f' : '_m';
+          imgEl.src = `/${card.image}${genderSuffix}.png`;
+        }
+      }
+
+      if (glitchInterval) clearInterval(glitchInterval);
+      if (st.dead) {
+        const img = document.getElementById('portrait-img');
+        if (img) {
+          glitchInterval = setInterval(() => {
+            const isRed = Math.random() > 0.5;
+            const offsetX = (Math.random() - 0.5) * 10;
+            const offsetY = (Math.random() - 0.5) * 4;
+            
+            img.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+            if (isRed) {
+              img.style.filter = "sepia(1) hue-rotate(-50deg) saturate(10) drop-shadow(2px 0 0 red)";
+            } else {
+              img.style.filter = "sepia(1) hue-rotate(150deg) saturate(10) drop-shadow(-2px 0 0 blue)";
+            }
+          }, 100);
+        }
+      }
+      
+      const btn = document.getElementById('send');
+      if (btn) {
+        btn.onclick = async () => {
+          const inp = document.getElementById('msg');
+          const text = inp.value.trim();
+          if (!text) return;
+          inp.value = '';
+          await fetch(`/api/chat/${token}`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text })
+          });
+          loadChat();
+        };
+      }
+      
+      loadChat();
+    }
+
+    async function loadChat() {
+      const log = document.getElementById('log');
+      if (!log) return;
+      
+      try {
+        const msgs = await (await fetch(`/api/chat/${token}`)).json();
+        if (msgs && msgs.length > 0) {
+          log.innerHTML = msgs.map(m => `<div class="msg msg--${m.from}">${m.text}</div>`).join('');
+          log.scrollTop = log.scrollHeight;
+        }
+      } catch (e) {}
+    }
+  </script>
+</body>
+</html>

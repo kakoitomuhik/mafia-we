@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Благодетель — панель</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="admin">
+    <h1>Благодетель</h1>
+    
+    <div class="tabs">
+      <button class="tab tab--active" id="btn-players">Игроки</button>
+      <button class="tab" id="btn-chats">Вопросы</button>
+      <button class="tab" id="btn-notes">Заметки</button>
+    </div>
+    
+    <!-- Вкладка Игроки -->
+    <div id="tab-players" style="display: block;">
+      <div id="list" class="admin__list">Загрузка...</div>
+      <button id="reset" class="btn-ghost">Сбросить всё</button>
+    </div>
+    
+    <!-- Вкладка Вопросы -->
+    <div id="tab-chats" style="display: none;">
+      <div id="chats" class="chats">Загрузка...</div>
+    </div>
+
+    <!-- Вкладка Заметки (одно большое поле) -->
+    <div id="tab-notes" style="display: none;">
+      <div class="notes-block" style="max-width: 100%;">
+        <textarea class="notes-textarea" id="global-notes" style="min-height: 400px; font-size: 16px; line-height: 1.6;" placeholder="Записывайте сюда всё: кто что делал ночью, кого проверил Хранитель, кого лечил Врач, какие цели выполнены..."></textarea>
+        <button class="btn-save-notes" onclick="saveGlobalNotes()" style="padding: 12px 24px; font-size: 16px;">Сохранить заметки</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const listEl = document.getElementById('list');
+    const chatsEl = document.getElementById('chats');
+    const globalNotesEl = document.getElementById('global-notes');
+    let cardsData = [];
+    let stateData = {};
+    let chatData = [];
+
+    // Переключение вкладок
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab--active'));
+      document.getElementById('tab-players').style.display = 'none';
+      document.getElementById('tab-chats').style.display = 'none';
+      document.getElementById('tab-notes').style.display = 'none';
+
+      if (tabName === 'players') {
+        document.getElementById('btn-players').classList.add('tab--active');
+        document.getElementById('tab-players').style.display = 'block';
+      } else if (tabName === 'chats') {
+        document.getElementById('btn-chats').classList.add('tab--active');
+        document.getElementById('tab-chats').style.display = 'block';
+      } else if (tabName === 'notes') {
+        document.getElementById('btn-notes').classList.add('tab--active');
+        document.getElementById('tab-notes').style.display = 'block';
+        // Загружаем общие заметки при открытии вкладки
+        globalNotesEl.value = stateData['global_notes'] || "";
+      }
+    }
+
+    document.getElementById('btn-players').onclick = () => switchTab('players');
+    document.getElementById('btn-chats').onclick = () => switchTab('chats');
+    document.getElementById('btn-notes').onclick = () => switchTab('notes');
+
+    // Загрузка данных
+    async function loadData() {
+      try {
+        const resCards = await fetch('/api/cards');
+        cardsData = await resCards.json();
+        
+        const resState = await fetch('/api/state');
+        stateData = await resState.json();
+        
+        const resChat = await fetch('/api/chat');
+        chatData = await resChat.json();
+
+        renderPlayers();
+        renderChats();
+      } catch (e) {
+        listEl.innerHTML = '<span style="color:red">Ошибка загрузки данных. Проверь сервер.</span>';
+      }
+    }
+
+    // Отрисовка Игроков
+    function renderPlayers() {
+      listEl.innerHTML = cardsData.map(c => {
+        const st = stateData[c.id] || { dead: false, personalWinDone: false };
+        return `
+          <div class="admin__row">
+            <div>
+              <strong>${c.cipher} · ${c.role}</strong>
+              <small>${c.alibiProfession} · цель ${c.goalName}</small>
+            </div>
+<button class="btn-dead ${st.dead ? 'on' : ''}" onclick="toggleState(${c.id}, 'dead', ${!st.dead})">
+              ${st.dead ? 'Мёртв' : 'Жив'}
+            </button>
+            <button class="btn-win ${st.personalWinDone ? 'on' : ''}" onclick="toggleState(${c.id}, 'personalWinDone', ${!st.personalWinDone})">
+              ${st.personalWinDone ? 'Победа' : '—'}
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Сохранение общих заметок
+    async function saveGlobalNotes() {
+      const text = globalNotesEl.value;
+      await fetch(`/api/state/global_notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: text })
+      });
+      
+      // Визуальный отклик
+      const btn = event.target;
+      const oldText = btn.innerText;
+      btn.innerText = "Сохранено!";
+      btn.style.background = "rgba(80,255,160,0.2)";
+      setTimeout(() => {
+        btn.innerText = oldText;
+        btn.style.background = "";
+      }, 1500);
+    }
+
+    // Отрисовка Чатов
+    function renderChats() {
+      const withMsgs = chatData.filter(c => c.messages && c.messages.length > 0);
+      
+      if (withMsgs.length === 0) {
+        chatsEl.innerHTML = '<div style="color:#7a879e; padding:20px; text-align:center;">Пока никто не задал вопросов.</div>';
+        return;
+      }
+
+      chatsEl.innerHTML = withMsgs.map(c => {
+        const msgsHtml = c.messages.map(m => `
+          <div class="msg msg--${m.from}">
+            ${m.text}
+            <small>${new Date(m.ts).toLocaleTimeString('ru', {hour:'2-digit',minute:'2-digit'})}</small>
+          </div>
+        `).join('');
+
+        return `
+          <div class="chat-block">
+            <div class="chat-block__head">
+              <strong>${c.cipher} · ${c.role}</strong> <small>(${c.alibiProfession})</small>
+            </div>
+            <div class="chat__log" style="max-height:200px; overflow-y:auto; margin-bottom:10px;">
+              ${msgsHtml}
+            </div>
+            <div class="chat__input">
+              <input type="text" id="reply-${c.token}" placeholder="Ответить..." />
+              <button onclick="sendReply('${c.token}')">Ответить</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function sendReply(token) {
+      const inp = document.getElementById('reply-' + token);
+      const text = inp.value.trim();
+      if (!text) return;
+      
+      await fetch(`/api/chat/${token}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      loadData();
+    }
+
+    async function toggleState(id, field, value) {
+      await fetch(`/api/state/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: value })
+      });
+      loadData();
+    }
+
+    document.getElementById('reset').onclick = async () => {
+      if (!confirm('Точно сбросить статусы и удалить сообщения?')) return;
+      await fetch('/api/reset', { method: 'POST' });
+      loadData();
+    };
+
+    loadData();
+    
+    // Автообновление
+    setInterval(async () => {
+      const notesTab = document.getElementById('tab-notes');
+      if (notesTab.style.display !== 'none') return; // Не обновляем, если пишем заметки
+
+      const resState = await fetch('/api/state');
+      stateData = await resState.json();
+      renderPlayers();
+      
+      const resChat = await fetch('/api/chat');
+      chatData = await resChat.json();
+      renderChats();
+    }, 3000);
+  </script>
+</body>
+</html>

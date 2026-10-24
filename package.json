@@ -1,0 +1,12 @@
+{
+  "name": "we-mafia",
+  "version": "1.0.0",
+  "description": "Мафия по мотивам «Мы» — карты, QR, чат",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

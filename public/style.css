@@ -1,0 +1,171 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Montserrat', -apple-system, "Segoe UI", Roboto, sans-serif;
+  background-color: #06080f; 
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  color: #e8eef7; 
+  min-height: 100vh; 
+  padding: 16px;
+  padding-top: env(safe-area-inset-top, 16px);
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+  overflow-x: hidden; 
+  margin: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.page { display: flex; justify-content: center; align-items: flex-start; }
+
+/* === Карта === */
+.card {
+  width: 100%; max-width: 420px;
+  border: 1px solid rgba(120, 170, 255, 0.25);
+  border-radius: 20px; 
+  backdrop-filter: blur(12px);
+  box-shadow: 0 20px 60px rgba(0, 40, 120, 0.4);
+  animation: floatIn 0.6s ease;
+  position: relative;
+  overflow: hidden;
+  /* padding убран, чтобы обложка была вплотную к краям */
+}
+@keyframes floatIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+
+/* Внутренняя подложка для читаемости текста поверх обложки */
+.card-inner {
+  background: rgba(10, 15, 30, 0.85); 
+  padding: 24px;
+  border-radius: 19px; 
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.card__cipher { font-size: 20px; color: #a8c4ff; font-weight: bold; margin-bottom: 12px; text-align: center; }
+
+.card__portrait {
+  width: 100%; aspect-ratio: 1; border-radius: 16px;
+  background: linear-gradient(135deg, #1c2c4d, #0d1526);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; color: #6f8bb5; overflow: hidden; position: relative;
+}
+.card__portrait img { width: 100%; height: 100%; object-fit: cover; border-radius: 16px; }
+.card__portrait::after {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 40%, rgba(110, 180, 255, 0.35), transparent 60%);
+  animation: pulse 2.4s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100% { opacity: .35; } 50% { opacity: .85; } }
+
+.card__role { font-size: 26px; font-weight: 700; margin-top: 18px; text-align: center; }
+
+.card__side { text-align: center; font-size: 15px; letter-spacing: 3px; font-weight: bold; margin-top: 6px; text-transform: uppercase; }
+.side--integral { color: #69f0ae; }
+.side--resistance { color: #ff5252; }
+
+.card__alibi { margin-top: 18px; padding: 12px 16px; background: rgba(120,170,255,0.1); border-left: 4px solid #7aa7ff; border-radius: 8px; font-size: 16px; }
+.card__alibi strong { color: #a8c4ff; }
+
+.card__goal { margin-top: 18px; padding: 16px; background: rgba(255,200,100,0.08); border: 1px dashed rgba(255,200,100,0.4); border-radius: 12px; }
+.card__goal h3 { font-size: 18px; color: #ffd47a; margin-bottom: 8px; }
+.card__goal p { font-size: 15px; line-height: 1.5; }
+
+.card__legend { margin-top: 18px; font-size: 15px; line-height: 1.6; color: #9aa8c0; font-style: italic; }
+.card__quote { margin-top: 16px; font-size: 16px; color: #c4b8ff; text-align: center; padding: 12px; border-top: 1px solid #2a3a5a; font-weight: 500; }
+
+/* ========================================= */
+/* ЭФФЕКТ СМЕРТИ                             */
+/* ========================================= */
+
+.card--dead {
+  border-color: #ff3333 !important; 
+  box-shadow: 0 0 30px rgba(255, 0, 0, 0.4) !important; 
+}
+
+.dead-portrait { position: relative; }
+.dead-portrait::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: url('glass.png');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.9;
+  z-index: 10;
+  pointer-events: none;
+}
+.card--dead .main-img { position: relative; z-index: 6; }
+
+.banner-dead { 
+  margin-top: 18px; padding: 16px; 
+  background: rgba(255,60,60,0.15); 
+  border: 2px solid rgba(255,60,60,0.7); 
+  border-radius: 10px; 
+  font-size: 16px; color: #ff9a9a; text-align: center; 
+  z-index: 100; position: relative;
+  line-height: 1.5;
+}
+.banner-win { margin-top: 14px; padding: 14px; background: rgba(80,255,160,0.08); border: 1px solid rgba(80,255,160,0.4); border-radius: 10px; font-size: 15px; color: #8effc0; text-align: center; position: relative; z-index: 100; }
+
+/* === Чат === */
+.chat { margin-top: 20px; padding-top: 18px; border-top: 1px solid rgba(120,170,255,0.2); position: relative; z-index: 100; }
+.chat h4 { font-size: 15px; color: #7aa7ff; margin-bottom: 12px; letter-spacing: 1px; text-transform: uppercase; }
+.chat__log { max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.chat__empty { font-size: 14px; color: #55617a; text-align: center; padding: 10px; }
+.msg { max-width: 85%; padding: 10px 14px; border-radius: 14px; font-size: 15px; line-height: 1.4; word-wrap: break-word; }
+.msg--player { align-self: flex-end; background: rgba(120,170,255,0.22); border: 1px solid rgba(120,170,255,0.4); }
+.msg--admin { align-self: flex-start; background: rgba(255,200,100,0.12); border: 1px solid rgba(255,200,100,0.3); color: #ffd47a; }
+.msg small { display: block; font-size: 11px; color: #667; margin-top: 4px; }
+.chat__input { display: flex; gap: 8px; }
+.chat__input input { flex: 1; padding: 14px 16px; border-radius: 10px; background: rgba(0,0,0,0.4); border: 1px solid #2a3a5a; color: #e8eef7; font-size: 16px; outline: none; }
+.chat__input input:focus { border-color: #7aa7ff; }
+.chat__input button { padding: 14px 18px; border-radius: 10px; border: none; background: #4a7fff; color: white; font-size: 16px; cursor: pointer; font-weight: bold; }
+.chat__input button:hover { background: #5a8fff; }
+
+/* === Кнопки пола === */
+.btn-gender {
+  background: rgba(120,170,255,0.15);
+  border: 1px solid rgba(120,170,255,0.4);
+  color: #a8c4ff;
+  padding: 15px 30px;
+  border-radius: 12px;
+  font-size: 18px;
+  cursor: pointer;
+  transition: 0.2s;
+  font-weight: bold;
+}
+.btn-gender:hover {
+  background: rgba(120,170,255,0.3);
+  border-color: #7aa7ff;
+  transform: scale(1.05);
+}
+
+/* === Админка === */
+.admin { max-width: 900px; margin: 0 auto; width: 100%; }
+.admin h1 { font-size: 24px; margin-bottom: 16px; }
+.tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.tab { background: none; border: 1px solid #2a3a5a; color: #889; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+.tab--active { background: rgba(120,170,255,0.15); border-color: #7aa7ff; color: #a8c4ff; }
+.tab-panel.hidden { display: none; }
+
+.admin__list { display: grid; gap: 10px; }
+.admin__row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 14px 18px; background: rgba(18,26,44,0.85); border: 1px solid rgba(120,170,255,0.2); border-radius: 12px; font-size: 15px; }
+.admin__row small { color: #7a879e; display: block; margin-top: 4px; font-size: 13px; }
+.btn-dead, .btn-win { background: rgba(120,170,255,0.15); border: 1px solid rgba(120,170,255,0.4); color: #a8c4ff; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+.btn-dead.on { background: rgba(255,90,90,0.25); border-color: rgba(255,90,90,0.6); color: #ff9a9a; }
+.btn-win.on { background: rgba(80,255,160,0.2); border-color: rgba(80,255,160,0.5); color: #8effc0; }
+.btn-ghost { margin-top: 16px; background: none; border: 1px solid #445; color: #667; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+
+.notes-block { background: rgba(18,26,44,0.85); border: 1px solid rgba(120,170,255,0.2); border-radius: 12px; padding: 20px; margin-bottom: 10px; }
+.notes-textarea { width: 100%; min-height: 400px; background: rgba(0, 0, 0, 0.4); border: 1px solid #2a3a5a; border-radius: 8px; color: #e8eef7; padding: 15px; font-family: inherit; font-size: 16px; line-height: 1.6; resize: vertical; margin-bottom: 15px; }
+.notes-textarea:focus { outline: none; border-color: #7aa7ff; background: rgba(0, 0, 0, 0.6); }
+.notes-textarea::placeholder { color: #55617a; }
+.btn-save-notes { background: rgba(120,170,255,0.15); border: 1px solid rgba(120,170,255,0.4); color: #a8c4ff; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.2s; }
+.btn-save-notes:hover { background: rgba(120,170,255,0.3); }
+
+.chats { display: grid; gap: 12px; }
+.chat-block { background: rgba(18,26,44,0.85); border: 1px solid rgba(120,170,255,0.2); border-radius: 12px; padding: 16px; }
+.chat-block__head { font-size: 15px; margin-bottom: 12px; }
+.chat-block__head strong { color: #a8c4ff; }
+.chat-block__head small { color: #7a879e; margin-left: 6px; font-size: 13px; }
+.chat-block .chat__log { max-height: 180px; }
+.chat-block .chat__input { margin-top: 10px; }
