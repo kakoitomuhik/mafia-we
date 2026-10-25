@@ -26,6 +26,7 @@
           <option value="20">20 игроков</option>
         </select>
         <button id="next-night" class="btn-ghost" style="border-color: #4a7fff; color: #4a7fff; margin: 0;">Следующая ночь 🌙</button>
+        <button id="toggle-vote" class="btn-ghost" style="border-color: #ffd47a; color: #ffd47a; margin: 0;">Открыть голосование</button>
       </div>
 
       <div id="list" class="admin__list">Загрузка...</div>
@@ -66,6 +67,7 @@
     let chatData = [];
     let votesData = {};
     let lastChatJSON = '';
+    let votingStatus = false;
 
     function switchTab(tabName) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab--active'));
@@ -108,6 +110,23 @@
 
         modeSelect.value = stateData.mode || 10;
         renderPlayers();
+        
+        // Обновляем статус голосования
+        const voteRes = await fetch('/api/voting-status');
+        const voteStatus = await voteRes.json();
+        votingStatus = voteStatus.isVotingOpen;
+        
+        const toggleBtn = document.getElementById('toggle-vote');
+        if (votingStatus) {
+          toggleBtn.innerText = "Закрыть голосование";
+          toggleBtn.style.borderColor = "#ff5252";
+          toggleBtn.style.color = "#ff9a9a";
+        } else {
+          toggleBtn.innerText = "Открыть голосование";
+          toggleBtn.style.borderColor = "#ffd47a";
+          toggleBtn.style.color = "#ffd47a";
+        }
+
       } catch (e) {
         listEl.innerHTML = '<span style="color:red">Ошибка загрузки данных.</span>';
       }
@@ -262,6 +281,14 @@
 
     document.getElementById('next-night').onclick = async () => {
       await fetch('/api/next-night', { method: 'POST' });
+      loadData();
+    };
+
+    document.getElementById('toggle-vote').onclick = async () => {
+      await fetch('/api/voting-status', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isVotingOpen: !votingStatus })
+      });
       loadData();
     };
 
