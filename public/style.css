@@ -2,12 +2,12 @@
 body {
   font-family: 'Montserrat', -apple-system, "Segoe UI", Roboto, sans-serif;
   
-  /* ДВОЙНОЙ ФОН ДЛЯ АДМИНКИ: Синяя обложка + красный фильтр сверху */
-  background-image: 
-    linear-gradient(rgba(60, 10, 15, 0.75), rgba(60, 10, 15, 0.75)), 
-    url('bg-alive.png'); 
-  background-size: cover;
-  background-position: center;
+  /* ФОН: Темный цвет + картинка закреплена в правом нижнем углу */
+  background-color: #06080f; 
+  background-image: url('bg-alive.png'); 
+  background-size: cover; /* Растягиваем на весь экран */
+  background-position: bottom right; /* Прижимаем к правому нижнему углу */
+  background-repeat: no-repeat;
   background-attachment: fixed;
   
   color: #e8eef7; 
@@ -159,7 +159,7 @@ body {
   letter-spacing: 2px;
   text-transform: uppercase;
   color: #fff;
-  text-shadow: 0 0 15px rgba(255, 50, 50, 0.8), 0 0 5px rgba(120, 170, 255, 0.5);
+  text-shadow: 0 0 15px rgba(120, 170, 255, 0.8);
 }
 
 /* Кнопки вкладок (Битое стекло) */
