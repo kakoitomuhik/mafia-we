@@ -12,7 +12,6 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- Аудио для звука смерти -->
   <audio id="glass-sound" src="glass-break.mp3" preload="auto"></audio>
 
   <div id="app" class="page">
@@ -207,24 +206,32 @@
         if (card.goalName === "«Неуловимый»") displayGoal = "«Неуловимая»";
       }
 
-      // МАСКИРОВКА ИКОНЫ
       if (card.role === "Икона сопротивления") {
         displayRole = isFemale ? "Строительница" : "Строитель";
       }
 
-      // ЦИТАТА ИЗ ПАКЕТА
       let displayQuote = card.quote; 
-      
       const wordDeadFinal = isFemale ? 'дезинтегрирована' : 'дезинтегрирован';
       const wordProfession = isFemale ? 'Специальность' : 'Профессия';
 
-      // ЕДИНЫЙ БЛОК ЦЕЛИ
-      let goalHtml = `
-        <div class="card__goal">
-          <h3>Цель ${displayGoal}</h3>
-          <p>${displayTask}</p>
-        </div>
-      `;
+      // БЛОК ЦЕЛИ
+      let goalHtml = "";
+      if (card.role === "Строитель" || card.role === "Икона сопротивления") {
+        const questText = card.quest ? card.quest : "Выполни свой квест";
+        goalHtml = `
+          <div class="card__goal">
+            <h3>Цель ${displayGoal}</h3>
+            <p>${questText}</p>
+          </div>
+        `;
+      } else {
+        goalHtml = `
+          <div class="card__goal">
+            <h3>Цель ${displayGoal}</h3>
+            <p>${displayTask}</p>
+          </div>
+        `;
+      }
 
       app.innerHTML = `
         <div class="card ${st.dead ? 'card--dead' : ''}" style="background-image: url('${bgImage}'); background-size: cover; background-position: center;">
