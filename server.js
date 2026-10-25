@@ -9,18 +9,20 @@ const CARDS_FILE = path.join(__dirname, 'public', 'cards.json');
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Память
 let state = {}; 
 let chat = {}; 
 let usedTokens = {}; 
 let currentNight = 1;
 let currentMode = 10; 
+let gameCards = null; // Память для карт (чтобы квесты не менялись)
 
 const PROFESSIONS = [
   "Инженер", "Архитектор", "Учитель", "Бухгалтер", 
   "Программист", "Электрик", "Сварщик", "Агроном", 
   "Геолог", "Машинист", "Библиотекарь", "Химик"
 ];
+
+const CIPHER_LETTERS = ["А", "Б", "В", "Г", "Д", "Е", "Ж", "З", "И", "К", "Л", "М", "Н", "П", "Р", "С", "Т", "Ф"];
 
 const QUESTS = [
   "«Смутьян»: Добейся, чтобы против тебя проголосовало 0 человек.",
@@ -52,6 +54,8 @@ function shuffle(array) {
 }
 
 function getCardsWithProfessions() {
+  if (gameCards) return gameCards; // Если уже сгенерировали — отдаем как есть
+
   let allCards = JSON.parse(fs.readFileSync(CARDS_FILE, 'utf8'));
   let selectedCards = [];
   
@@ -63,32 +67,36 @@ function getCardsWithProfessions() {
     selectedCards = allCards.slice(0, 20);
   }
 
-  const hasMissingProfession = selectedCards.some(c => !c.alibiProfession);
-  if (hasMissingProfession) {
-    const shuffledProfs = shuffle([...PROFESSIONS]);
-    selectedCards.forEach((card, index) => {
-      if (!card.alibiProfession) {
-        card.alibiProfession = shuffledProfs[index % shuffledProfs.length];
-      }
-    });
-  }
+  // 1. Профессии
+  const shuffledProfs = shuffle([...PROFESSIONS]);
+  selectedCards.forEach((card, index) => {
+    card.alibiProfession = shuffledProfs[index % shuffledProfs.length];
+  });
 
+  // 2. Шифры
+  const shuffledLetters = shuffle([...CIPHER_LETTERS]);
+  selectedCards.forEach((card, index) => {
+    const letter = shuffledLetters[index % shuffledLetters.length];
+    const number = Math.floor(Math.random() * 999) + 1;
+    card.randomCipher = `${letter}-${number}`;
+  });
+
+  // 3. Квесты (только Строителям)
   selectedCards.forEach(card => {
-    if ((card.role === "Строитель" || card.role === "Икона сопротивления") && !card.quest) {
+    if (card.role === "Строитель") {
       card.quest = QUESTS[Math.floor(Math.random() * QUESTS.length)];
     }
   });
 
-  if (!selectedCards.some(c => c.isAvenger)) {
-    const candidates = selectedCards.filter(c => c.role === "Строитель");
-    if (candidates.length > 0) {
-      const chosenOne = candidates[Math.floor(Math.random() * candidates.length)];
-      const cardToModify = selectedCards.find(c => c.id === chosenOne.id);
-      if (cardToModify) cardToModify.isAvenger = true;
-    }
+  // 4. Мститель (только среди Строителей)
+  const candidates = selectedCards.filter(c => c.role === "Строитель");
+  if (candidates.length > 0) {
+    const chosenOne = candidates[Math.floor(Math.random() * candidates.length)];
+    chosenOne.isAvenger = true;
   }
 
-  return selectedCards;
+  gameCards = selectedCards;
+  return gameCards;
 }
 
 app.get('/api/cards', (req, res) => {
@@ -124,12 +132,7 @@ app.post('/api/next-night', (_, res) => {
 
 app.post('/api/reset', (_, res) => {
   state = {}; chat = {}; usedTokens = {}; currentNight = 1;
-  let allCards = JSON.parse(fs.readFileSync(CARDS_FILE, 'utf8'));
-  allCards.forEach(c => {
-    delete c.alibiProfession;
-    delete c.quest;
-    delete c.isAvenger;
-  });
+  gameCards = null; // Очищаем память, чтобы при следующем запросе всё перемешалось заново
   res.json({ ok: true });
 });
 
@@ -150,7 +153,7 @@ app.post('/api/chat/:token/reply', (req, res) => {
 });
 app.get('/api/chat', (_, res) => {
   const summary = getCardsWithProfessions().map(c => ({
-    token: c.token, cipher: c.cipher, role: c.role, alibiProfession: c.alibiProfession,
+    token: c.token, cipher: c.randomCipher || c.cipher, role: c.role, alibiProfession: c.alibiProfession,
     messages: chat[c.token] || []
   }));
   res.json(summary);
