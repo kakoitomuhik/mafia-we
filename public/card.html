@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <!-- Аудио для звука смерти -->
   <audio id="glass-sound" src="glass-break.mp3" preload="auto"></audio>
 
   <div id="app" class="page">
@@ -24,10 +25,6 @@
     let card = null;
     let currentDeadStatus = false;
     let glitchInterval = null;
-    
-    // Сбрасываем пол при загрузке, чтобы он не выбирался автоматом (только для теста, если нужно)
-    // localStorage.removeItem('gender_' + token); 
-    
     let userGender = localStorage.getItem('gender_' + token);
     let roleRevealed = localStorage.getItem('revealed_' + token) === 'true';
 
@@ -215,9 +212,19 @@
         displayRole = isFemale ? "Строительница" : "Строитель";
       }
 
+      // ЦИТАТА ИЗ ПАКЕТА
       let displayQuote = card.quote; 
+      
       const wordDeadFinal = isFemale ? 'дезинтегрирована' : 'дезинтегрирован';
       const wordProfession = isFemale ? 'Специальность' : 'Профессия';
+
+      // ЕДИНЫЙ БЛОК ЦЕЛИ
+      let goalHtml = `
+        <div class="card__goal">
+          <h3>Цель ${displayGoal}</h3>
+          <p>${displayTask}</p>
+        </div>
+      `;
 
       app.innerHTML = `
         <div class="card ${st.dead ? 'card--dead' : ''}" style="background-image: url('${bgImage}'); background-size: cover; background-position: center;">
@@ -231,12 +238,8 @@
               <div class="card__side ${sideClass}">${sideText}</div>
               <div class="card__alibi"><strong>${wordProfession}:</strong> ${displayAlibi}</div>
               
-              ${card.quest ? `<div class="card__goal" style="background: rgba(80,255,160,0.1); border-color: #69f0ae;"><h3 style="color:#69f0ae;">Квест</h3><p>${card.quest}</p></div>` : ''}
+              ${goalHtml}
 
-              <div class="card__goal">
-                <h3>Цель ${displayGoal}</h3>
-                <p>${displayTask}</p>
-              </div>
               <div class="card__legend">${displayLegend}</div>
               <div class="card__quote">«${displayQuote}»</div>
             ` : `
@@ -264,7 +267,7 @@
               <h4>Связаться с Благодетелем</h4>
               <div class="chat__log" id="log"><div class="chat__empty">Загрузка...</div></div>
               <div class="chat__input">
-                <input id="msg" placeholder="Вопрос или квест…" />
+                <input id="msg" placeholder="Вопрос…" />
                 <button id="send">Отправить</button>
               </div>
             </div>
