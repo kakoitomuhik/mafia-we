@@ -1,99 +1,160 @@
-const token = new URLSearchParams(location.search).get('t');
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-let card = null;
-let state = { dead: false, personalWinDone: false };
+const CARDS_FILE = path.join(__dirname, 'public', 'cards.json');
 
-async function load() {
-  if (!token) {
-    document.getElementById('app').innerHTML = '<p style="padding:20px;color:#889">Токен не найден. Отсканируй QR.</p>';
-    return;
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+let state = {}; 
+let chat = {}; 
+let usedTokens = {}; 
+let currentNight = 1;
+let currentMode = 10; 
+let gameCards = null;
+
+// 12 рандомных профессий (алиби)
+const PROFESSIONS = [
+  "Инженер", "Архитектор", "Учитель", "Бухгалтер", 
+  "Программист", "Электрик", "Сварщик", "Агроном", 
+  "Геолог", "Машинист", "Библиотекарь", "Химик"
+];
+
+// Буквы для номеров
+const CIPHER_LETTERS = ["А", "Б", "В", "Г", "Д", "Е", "Ж", "З", "И", "К", "Л", "М", "Н", "П", "Р", "С", "Т", "Ф"];
+
+// ТОЛЬКО ПРОРАБОТАННЫЕ ЦЕЛИ (Поэт, Пропагандист, Юрист, Пацифист)
+const GOALS = [
+  { img: "poet", name: "Поэт", task: "Расскажи историю, которую оценят 3 человека.", quote: "Я говорю — и стекло трещит." },
+  { img: "propagandist", name: "Пропагандист", task: "Добейся, чтобы против тебя проголосовало 0 человек.", quote: "Толпа — механизм. Найди рычаг." },
+  { img: "lawyer", name: "Юрист", task: "Добейся, чтобы казнили того, за кого ты проголосовал.", quote: "Люди пишут правила. Люди ошибаются." },
+  { img: "pacifist", name: "Пацифист", task: "Промолчи всю игру (общайся только жестами).", quote: "Любовь важнее закона." }
+];
+
+function shuffle(array) {
+  let currentIndex = array.length, randomIndex;
+  while (currentIndex !== 0) {
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+    [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
   }
-  const cards = await (await fetch('/api/cards')).json();
-  card = cards.find(c => c.token === token);
-  if (!card) {
-    document.getElementById('app').innerHTML = '<p style="padding:20px;color:#889">Карта не найдена.</p>';
-    return;
+  return array;
+}
+
+function getCardsWithProfessions() {
+  if (gameCards) return gameCards; 
+
+  let allCards = JSON.parse(fs.readFileSync(CARDS_FILE, 'utf8'));
+  let selectedCards = [];
+  
+  if (currentMode === 10) selectedCards = allCards.filter(c => c.id <= 10); 
+  else if (currentMode === 15) selectedCards = allCards.slice(0, 15);
+  else selectedCards = allCards.slice(0, 20);
+
+  const shuffledProfs = shuffle([...PROFESSIONS]);
+  const shuffledLetters = shuffle([...CIPHER_LETTERS]);
+  const shuffledGoals = shuffle([...GOALS]);
+
+  let goalIndex = 0;
+
+  selectedCards.forEach((card, index) => {
+    // 1. Выдаем случайный номер и профессию
+    card.alibiProfession = shuffledProfs[index % shuffledProfs.length];
+    const letter = shuffledLetters[index % shuffledLetters.length];
+    const number = Math.floor(Math.random() * 999) + 1;
+    card.randomCipher = `${letter}-${number}`;
+    
+    // 2. Выдаем цель
+    if (card.role === "Строитель") {
+      // Строителям - случайная цель из списка
+      const goal = shuffledGoals[goalIndex % shuffledGoals.length];
+      goalIndex++;
+      card.image = goal.img;
+      card.quote = goal.quote;
+      card.goalName = goal.name;
+      card.quest = goal.task;
+    } else if (card.role === "Икона сопротивления") {
+      // Иконе - её родная цель
+      card.image = "icon";
+      card.quote = "Я — цитата, которую повторят после меня.";
+      card.goalName = "«Икона сопротивления»";
+      card.quest = "Быть казнённой городом. Очков за твою смерть не получает никто.";
+    }
+    // У Врача, Хранителя и Мафии всё берется из cards.json
+  });
+
+  // 3. Мститель (среди Строителей)
+  const candidates = selectedCards.filter(c => c.role === "Строитель");
+  if (candidates.length > 0) {
+    const chosenOne = candidates[Math.floor(Math.random() * candidates.length)];
+    chosenOne.isAvenger = true;
   }
-  await pullState();
-  render();
-  setInterval(pullState, 2000);
-  setInterval(renderChat, 2000);
-  bindChat();
+
+  gameCards = selectedCards;
+  return gameCards;
 }
 
-async function pullState() {
-  const all = await (await fetch('/api/state')).json();
-  state = all[card.id] || { dead: false, personalWinDone: false };
-  render();
-}
+app.get('/api/cards', (req, res) => {
+  const token = req.query.t;
+  const deviceId = req.query.device;
 
-function render() {
-  if (!card) return;
-  const isDead = state.dead;
-  const win = state.personalWinDone;
-  document.getElementById('app').innerHTML = `
-    <div class="card ${isDead ? 'card--dead' : ''}">
-      <div class="card__cipher">Нумер ${card.cipher}</div>
-      <div class="card__portrait">Портрет</div>
-      <div class="card__role">${card.role}</div>
-      <div class="card__side">${card.side}</div>
-      <div class="card__alibi"><strong>Прикрытие:</strong> ${card.alibiProfession}</div>
-      <div class="card__goal">
-        <h3>Цель ${card.goalName}</h3>
-        <p>${card.task}</p>
-      </div>
-      <div class="card__legend">${card.legend}</div>
-      <div class="card__quote">«${card.quote}»</div>
-      ${isDead ? '<div class="banner-dead"><strong>Ты выведен из игры.</strong><br>Не говоришь, не пишешь. Но голосовать можешь.</div>' : ''}
-      ${win ? '<div class="banner-win">Личная цель выполнена.</div>' : ''}
-      <div class="chat">
-        <h4>Спросить Благодетеля</h4>
-        <div class="chat__log" id="log"></div>
-        <div class="chat__input">
-          <input id="msg" placeholder="Вопрос по правилам…" />
-          <button id="send">Отправить</button>
-        </div>
-      </div>
-      <div class="card__footnote">ИНТЕГРАЛ</div>
-    </div>
-  `;
-  bindChat();
-  renderChat();
-}
+  if (token && deviceId) {
+    if (usedTokens[token] && usedTokens[token] !== deviceId) {
+      return res.status(403).json({ error: 'used' });
+    }
+    usedTokens[token] = deviceId;
+  }
+  res.json(getCardsWithProfessions());
+});
 
-async function renderChat() {
-  const log = document.getElementById('log');
-  if (!log) return;
-  const msgs = await (await fetch(`/api/chat/${token}`)).json();
-  if (!msgs.length) { log.innerHTML = '<div class="chat__empty">Пока пусто</div>'; return; }
-  log.innerHTML = msgs.map(m => `
-    <div class="msg msg--${m.from}">
-      ${escapeHtml(m.text)}
-      <small>${new Date(m.ts).toLocaleTimeString('ru', {hour:'2-digit',minute:'2-digit'})}</small>
-    </div>
-  `).join('');
-  log.scrollTop = log.scrollHeight;
-}
+app.get('/api/state', (_, res) => res.json({ cards: state, night: currentNight, mode: currentMode }));
 
-function bindChat() {
-  const btn = document.getElementById('send');
-  const inp = document.getElementById('msg');
-  if (!btn || btn.dataset.bound) return;
-  btn.dataset.bound = '1';
-  const send = async () => {
-    const text = inp.value.trim();
-    if (!text) return;
-    inp.value = '';
-    await fetch(`/api/chat/${token}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text })
-    });
-    renderChat();
-  };
-  btn.onclick = send;
-  inp.onkeydown = e => { if (e.key === 'Enter') send(); };
-}
+app.post('/api/state/:id', (req, res) => {
+  const id = req.params.id;
+  state[id] = { ...(state[id] || {}), ...req.body };
+  res.json(state[id]);
+});
 
-const escapeHtml = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+app.post('/api/set-mode', (req, res) => {
+  currentMode = req.body.mode;
+  res.json({ mode: currentMode });
+});
 
-load();
+app.post('/api/next-night', (_, res) => {
+  currentNight++;
+  res.json({ night: currentNight });
+});
+
+app.post('/api/reset', (_, res) => {
+  state = {}; chat = {}; usedTokens = {}; currentNight = 1;
+  gameCards = null; 
+  res.json({ ok: true });
+});
+
+app.get('/api/chat/:token', (req, res) => res.json(chat[req.params.token] || []));
+app.post('/api/chat/:token', (req, res) => {
+  const text = (req.body.text || '').trim();
+  if (!text) return res.status(400).json({ error: 'empty' });
+  const t = req.params.token;
+  (chat[t] = chat[t] || []).push({ from: 'player', text, ts: Date.now() });
+  res.json({ ok: true });
+});
+app.post('/api/chat/:token/reply', (req, res) => {
+  const text = (req.body.text || '').trim();
+  if (!text) return res.status(400).json({ error: 'empty' });
+  const t = req.params.token;
+  (chat[t] = chat[t] || []).push({ from: 'admin', text, ts: Date.now() });
+  res.json({ ok: true });
+});
+app.get('/api/chat', (_, res) => {
+  const summary = getCardsWithProfessions().map(c => ({
+    token: c.token, cipher: c.randomCipher || c.cipher, role: c.role, alibiProfession: c.alibiProfession,
+    messages: chat[c.token] || []
+  }));
+  res.json(summary);
+});
+
+app.listen(PORT, () => console.log(`▶  http://localhost:${PORT}`));
