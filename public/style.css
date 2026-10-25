@@ -31,10 +31,9 @@ body {
   position: relative;
   overflow: hidden; 
   
-  /* Фон карты */
   background-image: var(--bg-url, url('bg-alive.v.png'));
   background-size: cover; 
-  background-position: bottom left; /* Прижимаем картинку к нижнему левому углу */
+  background-position: bottom left; 
   background-repeat: no-repeat;
 }
 @keyframes floatIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
@@ -175,7 +174,30 @@ body {
 /* СТИЛИ ДЛЯ АДМИНКИ (БЛАГОДЕТЕЛЬ)           */
 /* ========================================= */
 
-.admin { max-width: 900px; margin: 0 auto; width: 100%; padding-bottom: 50px; }
+/* ФОН СО СТЕКЛОМ ДЛЯ АДМИНКИ */
+.admin { 
+  max-width: 900px; 
+  margin: 0 auto; 
+  width: 100%; 
+  padding: 20px;
+  padding-bottom: 50px;
+  
+  background-image: url('glass.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  
+  background-color: rgba(6, 8, 15, 0.85);
+  background-blend-mode: overlay;
+  
+  border-radius: 20px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(120, 170, 255, 0.2);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
 .admin h1 { 
   font-size: 28px; margin-bottom: 20px; text-align: center; letter-spacing: 2px; text-transform: uppercase;
   color: #fff; text-shadow: 0 0 15px rgba(120, 170, 255, 0.8), 0 0 5px #000;
@@ -197,6 +219,7 @@ body {
   display: flex; gap: 15px; align-items: center; justify-content: center;
   background-color: rgba(18, 26, 44, 0.9); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
   border: 1px solid rgba(120, 170, 255, 0.3); border-radius: 16px; padding: 15px 20px; margin-bottom: 20px;
+  flex-wrap: wrap;
 }
 .mode-control label { color: #a8c4ff; font-weight: bold; font-size: 15px; letter-spacing: 1px; text-shadow: 1px 1px 2px black; }
 .mode-control select {
@@ -248,4 +271,17 @@ body {
 .notes-textarea { 
   width: 100%; min-height: 400px; 
   background: rgba(10, 15, 30, 0.9); 
-  border: 
+  border: 1px solid rgba(120, 170, 255, 0.3); border-radius: 12px; color: #fff; padding: 20px; font-family: inherit; font-size: 16px; line-height: 1.6; resize: vertical; margin-bottom: 20px; 
+}
+.notes-textarea:focus { outline: none; border-color: #7aa7ff; box-shadow: 0 0 15px rgba(122, 167, 255, 0.2); }
+
+.btn-save-notes { 
+  background-color: rgba(120, 170, 255, 0.2); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  border: 1px solid rgba(120, 170, 255, 0.5); color: #fff; padding: 12px 24px; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; text-shadow: 1px 1px 3px black;
+}
+
+@media (max-width: 600px) {
+  .chat__input { flex-direction: column; gap: 10px; }
+  .chat__input input { width: 100%; }
+  .chat__input button { width: 100%; padding: 14px; }
+}
