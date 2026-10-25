@@ -142,6 +142,11 @@
           const stateData = await stateRes.json();
           const st = (stateData.cards && stateData.cards[card.id]) || { dead: false, personalWinDone: false };
           
+          // Если игрок Мститель, умер и еще не выбрал жертву — НЕ перерисовываем карту, чтобы не сбить выбор
+          if (st.dead && card.isAvenger && !st.avengerUsed) {
+            return; 
+          }
+
           if (st.dead !== currentDeadStatus) {
             currentDeadStatus = st.dead;
             await renderCard();
@@ -296,7 +301,6 @@
               <button onclick="resetGender()" style="background:none; border:none; color:#55617a; font-size:12px; cursor:pointer; text-decoration: underline;">Сменить пол</button>
             </div>
 
-            <!-- Упоминание автора и произведения -->
             <div style="text-align: right; font-size: 10px; color: #445; margin-top: 10px; letter-spacing: 1px;">
               Е. Замятин · «Мы»
             </div>
