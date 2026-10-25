@@ -86,6 +86,9 @@
               <button onclick="setGender('male')" class="btn-gender">Мужчина</button>
               <button onclick="setGender('female')" class="btn-gender">Женщина</button>
             </div>
+            <div style="text-align: right; font-size: 10px; color: #445; margin-top: 20px; letter-spacing: 1px;">
+              Е. Замятин · «Мы»
+            </div>
           </div>
         </div>
       `;
@@ -99,6 +102,9 @@
             <h2 style="margin: 30px 0 10px 0; color: #a8c4ff;">Твоя роль готова</h2>
             <p style="color: #9aa8c0; margin-bottom: 30px; font-size: 15px;">Убедись, что никто не смотрит на твой экран, и нажми кнопку.</p>
             <button onclick="revealRole()" class="btn-gender" style="width: 100%;">Показать мою роль</button>
+            <div style="text-align: right; font-size: 10px; color: #445; margin-top: 20px; letter-spacing: 1px;">
+              Е. Замятин · «Мы»
+            </div>
           </div>
         </div>
       `;
@@ -164,9 +170,16 @@
       document.documentElement.style.setProperty('--bg-url', `url('${bgImage}')`);
 
       const DEATH_QUOTES = [
-        "«Единственное средство избавить человека от преступлений — избавить его от свободы».",
-        "«Вы боитесь, что я не смогу умереть. Но я уже растворился в Едином Государстве».",
-        "«Стекло прозрачно. Вы видите меня. А я вижу вас»."
+        "«Плохо ваше дело! По-видимому, у вас образовалась душа».",
+        "«Блаженство и зависть — это числитель и знаменатель дроби, именуемой счастьем».",
+        "«Мне было ясно: все спасены, но мне спасения уже нет, я не хочу спасения…»",
+        "«Ведь только и можно любить непокорное».",
+        "«Любовь и голод владеют миром».",
+        "«Знание, абсолютно уверенное в том, что оно безошибочно, — это вера».",
+        "«Но, дорогие, надо же сколько-нибудь думать, это очень помогает».",
+        "«Но мы-то знаем, что сны — это серьезная психическая болезнь».",
+        "«И математика, и смерть — никогда не ошибаются».",
+        "«Арифметически-безграмотную жалость знали только древние: нам она смешна»."
       ];
       const randomQuote = DEATH_QUOTES[Math.floor(Math.random() * DEATH_QUOTES.length)];
 
@@ -193,7 +206,11 @@
         if (card.alibiProfession === "Учитель") displayAlibi = "Учительница";
         if (card.alibiProfession === "Сварщик") displayAlibi = "Сварщица";
         if (card.alibiProfession === "Программист") displayAlibi = "Программистка";
-        if (card.goalNameF) displayGoal = card.goalNameF;
+        if (card.goalName === "«Поэт»") displayGoal = "«Поэтесса»";
+        if (card.goalName === "«Пропагандист»") displayGoal = "«Пропагандистка»";
+        if (card.goalName === "«Порядочный гражданин»") displayGoal = "«Порядочная гражданка»";
+        if (card.goalName === "«Пацифист»") displayGoal = "«Пацифистка»";
+        if (card.goalName === "«Неуловимый»") displayGoal = "«Неуловимая»";
       }
 
       if (card.role === "Икона сопротивления") {
@@ -277,6 +294,11 @@
             
             <div style="margin-top: 15px; text-align: center;">
               <button onclick="resetGender()" style="background:none; border:none; color:#55617a; font-size:12px; cursor:pointer; text-decoration: underline;">Сменить пол</button>
+            </div>
+
+            <!-- Упоминание автора и произведения -->
+            <div style="text-align: right; font-size: 10px; color: #445; margin-top: 10px; letter-spacing: 1px;">
+              Е. Замятин · «Мы»
             </div>
           </div>
         </div>
