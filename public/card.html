@@ -12,6 +12,9 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <!-- Аудио для звука смерти -->
+  <audio id="glass-sound" src="glass-break.mp3" preload="auto"></audio>
+
   <div id="app" class="page">
     <div style="color: white; text-align: center; margin-top: 50px;">Загрузка...</div>
   </div>
@@ -23,6 +26,7 @@
     let currentDeadStatus = false;
     let glitchInterval = null;
     let userGender = localStorage.getItem('gender_' + token);
+    let roleRevealed = localStorage.getItem('revealed_' + token) === 'true';
 
     let deviceId = localStorage.getItem('device_id');
     if (!deviceId) {
@@ -62,6 +66,8 @@
 
         if (!userGender) {
           renderGenderSelect();
+        } else if (!roleRevealed) {
+          renderRevealScreen();
         } else {
           await renderCard();
           startIntervals();
@@ -90,6 +96,29 @@
       `;
     }
 
+    function renderRevealScreen() {
+      document.body.style.backgroundImage = "url('bg-alive.png')"; 
+      document.body.style.backgroundSize = "cover";
+      document.body.style.backgroundPosition = "center";
+
+      app.innerHTML = `
+        <div class="card" style="text-align: center;">
+          <div class="card-inner">
+            <div class="card__cipher">Нумер ${card.randomCipher || card.cipher}</div>
+            <h2 style="margin: 30px 0 10px 0; color: #a8c4ff;">Твоя роль готова</h2>
+            <p style="color: #9aa8c0; margin-bottom: 30px; font-size: 15px;">Убедись, что никто не смотрит на твой экран, и нажми кнопку.</p>
+            <button onclick="revealRole()" class="btn-gender" style="width: 100%;">Показать мою роль</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function revealRole() {
+      roleRevealed = true;
+      localStorage.setItem('revealed_' + token, 'true');
+      start();
+    }
+
     function setGender(gender) {
       userGender = gender;
       localStorage.setItem('gender_' + token, gender);
@@ -102,7 +131,9 @@
 
     function resetGender() {
       localStorage.removeItem('gender_' + token);
+      localStorage.removeItem('revealed_' + token);
       userGender = null;
+      roleRevealed = false;
       if (glitchInterval) clearInterval(glitchInterval);
       renderGenderSelect();
     }
@@ -130,9 +161,21 @@
       const allStates = stateData.cards || {};
       const st = allStates[card.id] || { dead: false, personalWinDone: false };
       
+      if (st.dead && !currentDeadStatus) {
+        const sound = document.getElementById('glass-sound');
+        if (sound) sound.play().catch(() => {});
+      }
+
       currentDeadStatus = st.dead;
       const bgImage = st.dead ? 'bg-dead.png' : 'bg-alive.png';
       const isFemale = userGender === 'female';
+
+      const DEATH_QUOTES = [
+        "«Единственное средство избавить человека от преступлений — избавить его от свободы».",
+        "«Вы боитесь, что я не смогу умереть. Но я уже растворился в Едином Государстве».",
+        "«Стекло прозрачно. Вы видите меня. А я вижу вас»."
+      ];
+      const randomQuote = DEATH_QUOTES[Math.floor(Math.random() * DEATH_QUOTES.length)];
 
       let sideText = "ИНТЕГРАЛ";
       let sideClass = "side--integral";
@@ -169,11 +212,13 @@
       const wordDeadFinal = isFemale ? 'дезинтегрирована' : 'дезинтегрирован';
       const wordProfession = isFemale ? 'Специальность' : 'Профессия';
 
+      const showQuest = card.quest && card.role !== "Икона сопротивления";
+
       app.innerHTML = `
         <div class="card ${st.dead ? 'card--dead' : ''}" style="background-image: url('${bgImage}'); background-size: cover; background-position: center;">
           <div class="card-inner">
             ${!st.dead ? `
-              <div class="card__cipher">Нумер ${card.cipher}</div>
+              <div class="card__cipher">Нумер ${card.randomCipher || card.cipher}</div>
               <div class="card__portrait">
                 <img id="portrait-img" src="" alt="Портрет" style="width:100%; height:100%; object-fit:cover; border-radius: 16px;">
               </div>
@@ -181,7 +226,7 @@
               <div class="card__side ${sideClass}">${sideText}</div>
               <div class="card__alibi"><strong>${wordProfession}:</strong> ${displayAlibi}</div>
               
-              ${card.quest ? `<div class="card__goal" style="background: rgba(80,255,160,0.1); border-color: #69f0ae;"><h3 style="color:#69f0ae;">Квест</h3><p>${card.quest}</p></div>` : ''}
+              ${showQuest ? `<div class="card__goal" style="background: rgba(80,255,160,0.1); border-color: #69f0ae;"><h3 style="color:#69f0ae;">Квест</h3><p>${card.quest}</p></div>` : ''}
 
               <div class="card__goal">
                 <h3>Цель ${displayGoal}</h3>
@@ -205,6 +250,7 @@
                   <strong>Ты ${wordDeadFinal}.</strong><br><br>
                   Ты больше не можешь говорить или писать.<br>
                   Но твой голос в Стеклянном зале всё ещё слышен — <strong>ты можешь голосовать.</strong>
+                  <div style="margin-top: 15px; font-size: 13px; color: #c4b8ff; font-style: italic;">${randomQuote}</div>
                 </div>
               `}
             `}
@@ -246,9 +292,9 @@
               btn.className = 'btn-gender';
               btn.style.padding = '10px';
               btn.style.fontSize = '14px';
-              btn.innerText = `${p.cipher}`;
+              btn.innerText = `${p.randomCipher || p.cipher}`;
               btn.onclick = async () => {
-                if (!confirm(`Забрать с собой нумера ${p.cipher}?`)) return;
+                if (!confirm(`Забрать с собой нумера ${p.randomCipher || p.cipher}?`)) return;
                 await fetch(`/api/state/${p.id}`, {
                   method: 'POST', headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ dead: true })
@@ -312,7 +358,6 @@
           log.innerHTML = msgs.map(m => `<div class="msg msg--${m.from}">${m.text}</div>`).join('');
           log.scrollTop = log.scrollHeight;
         } else {
-          // Если сообщений нет, выводим заглушку вместо "Загрузки"
           if (log.innerHTML.includes('Загрузка')) {
              log.innerHTML = '<div class="chat__empty">Пока пусто</div>';
           }
