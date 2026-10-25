@@ -1,4 +1,5 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
 body {
   font-family: 'Montserrat', -apple-system, "Segoe UI", Roboto, sans-serif;
   background-color: #06080f; 
@@ -22,23 +23,26 @@ body {
 
 .card {
   width: 100%; max-width: 420px;
-  border: 1px solid rgba(120, 170, 255, 0.4);
+  border: 2px solid rgba(120, 170, 255, 0.5);
   border-radius: 20px; 
   box-shadow: 0 20px 60px rgba(0, 40, 120, 0.6);
   animation: floatIn 0.6s ease;
-  position: relative;
-  overflow: hidden;
   
-  /* Делаем фон карты ПОЛУПРОЗРАЧНЫМ, чтобы обложка (bg-alive) просвечивала */
-  background-color: rgba(10, 15, 30, 0.6); 
+  position: relative;
+  overflow: hidden; 
+  
+  /* Обложка управляется через переменную из JS */
+  background-image: var(--bg-url, url('bg-alive.png'));
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 @keyframes floatIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
 
 .card-inner {
-  /* Внутренняя подложка: темная, чтобы текст читался, но пропускает обложку */
   background-color: rgba(10, 15, 30, 0.85); 
   padding: 24px;
-  border-radius: 19px; 
+  border-radius: 18px; 
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -69,7 +73,7 @@ body {
 /* ПРОФЕССИЯ */
 .card__alibi { 
   margin-top: 18px; padding: 12px 16px; 
-  background: rgba(20, 30, 50, 0.95); /* Плотный фон для текста */
+  background: rgba(20, 30, 50, 0.95); 
   border: 1px solid rgba(120,170,255,0.4);
   border-left: 4px solid #7aa7ff; border-radius: 8px; font-size: 16px; 
   color: #fff;
@@ -79,7 +83,7 @@ body {
 /* ЦЕЛЬ */
 .card__goal { 
   margin-top: 18px; padding: 16px; 
-  background: rgba(30, 25, 20, 0.95); /* Плотный фон для текста */
+  background: rgba(30, 25, 20, 0.95); 
   border: 1px dashed rgba(255,200,100,0.6); border-radius: 12px; 
 }
 .card__goal h3 { font-size: 18px; color: #ffd47a; margin-bottom: 8px; }
@@ -136,7 +140,7 @@ body {
 .chat__input { display: flex; gap: 8px; }
 .chat__input input { 
   flex: 1; padding: 14px 16px; border-radius: 10px; 
-  background: rgba(0,0,0,0.8); 
+  background: rgba(0,0,0,0.9); 
   border: 1px solid #2a3a5a; color: #fff; font-size: 16px; outline: none; 
 }
 .chat__input input:focus { border-color: #7aa7ff; }
