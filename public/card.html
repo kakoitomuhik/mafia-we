@@ -78,7 +78,7 @@
 
     function renderGenderSelect() {
       app.innerHTML = `
-        <div class="card" style="text-align: center; background-image: url('bg-alive.png');">
+        <div class="card" style="text-align: center; background-image: url('bg-alive.v.png');">
           <div class="card-inner">
             <div class="card__cipher">Идентификация нумера</div>
             <h2 style="margin: 20px 0; color: #a8c4ff;">Укажи свой пол</h2>
@@ -93,7 +93,7 @@
 
     function renderRevealScreen() {
       app.innerHTML = `
-        <div class="card" style="text-align: center; background-image: url('bg-alive.png');">
+        <div class="card" style="text-align: center; background-image: url('bg-alive.v.png');">
           <div class="card-inner">
             <div class="card__cipher">Нумер ${card.randomCipher || card.cipher}</div>
             <h2 style="margin: 30px 0 10px 0; color: #a8c4ff;">Твоя роль готова</h2>
@@ -158,10 +158,9 @@
       }
 
       currentDeadStatus = st.dead;
-      const bgImage = st.dead ? 'bg-dead.png' : 'bg-alive.png';
+      const bgImage = st.dead ? 'bg-dead.v.png' : 'bg-alive.v.png';
       const isFemale = userGender === 'female';
 
-      // Передаем обложку в CSS
       document.documentElement.style.setProperty('--bg-url', `url('${bgImage}')`);
 
       const DEATH_QUOTES = [
@@ -284,7 +283,8 @@
         const imgEl = document.getElementById('portrait-img');
         if (imgEl) {
           const genderSuffix = isFemale ? '_f' : '_m';
-          imgEl.src = `/${card.image}${genderSuffix}.png`;
+          // ВОТ ТУТ ДОБАВЛЕН .v ДЛЯ КАРТИНОК
+          imgEl.src = `/${card.image}${genderSuffix}.v.png`;
         }
       }
 
