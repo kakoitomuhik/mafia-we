@@ -16,6 +16,7 @@ let currentNight = 1;
 let currentMode = 10; 
 let gameCards = null;
 
+// 12 рандомных профессий для алиби
 const PROFESSIONS = [
   "Инженер", "Архитектор", "Учитель", "Бухгалтер", 
   "Программист", "Электрик", "Сварщик", "Агроном", 
@@ -24,18 +25,18 @@ const PROFESSIONS = [
 
 const CIPHER_LETTERS = ["А", "Б", "В", "Г", "Д", "Е", "Ж", "З", "И", "К", "Л", "М", "Н", "П", "Р", "С", "Т", "Ф"];
 
-// Связанные пакеты: Картинка + Квест + Цитата
+// 10 пакетов (только квесты, картинки и цитаты берутся из cards.json)
 const PACKAGES = [
-  { img: "poet", quest: "«Поэт»: Расскажи историю, которую оценят 3 человека.", quote: "Я говорю — и стекло трещит." },
-  { img: "propagandist", quest: "«Смутьян»: Добейся, чтобы против тебя проголосовало 0 человек.", quote: "Толпа — механизм. Найди рычаг." },
-  { img: "lawyer", quest: "«Судья»: Добейся, чтобы казнили того, за кого ты проголосовал.", quote: "Люди пишут правила. Люди ошибаются." },
-  { img: "citizen", quest: "«Тень»: В течение дня соглашайся со всеми, но проголосуй против большинства.", quote: "Чтобы выжить в стеклянном доме — стань стеклом." },
-  { img: "pacifist", quest: "«Молчун»: Промолчи всю игру (общайся только жестами).", quote: "Любовь важнее закона." },
-  { img: "icon", quest: "«Хранитель времени»: Проживи до конца игры, ни разу не нарушив правила.", quote: "Я — цитата, которую повторят после меня." },
-  { img: "dissident", quest: "«Смельчак»: Выдвинь на казнь самого активного игрока за столом.", quote: "Я просто ускоряю процесс." },
-  { img: "leader", quest: "«Игрок»: На первом голосовании проголосуй за того, кто окажется мирным.", quote: "Они думают, что ловят меня. Это я решаю, кого они поймают." },
-  { img: "doctor", quest: "«Хранитель времени»: Проживи до конца игры, ни разу не нарушив правила.", quote: "Интеграл — это не стены. Это люди." },
-  { img: "guardian", quest: "«Смутьян»: Добейся, чтобы против тебя проголосовало 0 человек.", quote: "Я не ищу врагов. Я нахожу сбои." }
+  { quest: "Расскажи историю, которую оценят 3 человека." },
+  { quest: "Добейся, чтобы против тебя проголосовало 0 человек." },
+  { quest: "Добейся, чтобы казнили того, за кого ты проголосовал." },
+  { quest: "В течение дня соглашайся со всеми, но проголосуй против большинства." },
+  { quest: "Промолчи всю игру (общайся только жестами)." },
+  { quest: "Проживи до конца игры, ни разу не нарушив правила." },
+  { quest: "Выдвинь на казнь самого активного игрока за столом." },
+  { quest: "На первом голосовании проголосуй за того, кто окажется мирным." },
+  { quest: "Проживи до конца игры, ни разу не нарушив правила." },
+  { quest: "Добейся, чтобы против тебя проголосовало 0 человек." }
 ];
 
 function shuffle(array) {
@@ -54,29 +55,24 @@ function getCardsWithProfessions() {
   let allCards = JSON.parse(fs.readFileSync(CARDS_FILE, 'utf8'));
   let selectedCards = [];
   
-  if (currentMode === 10) {
-    selectedCards = allCards.filter(c => c.id <= 10); 
-  } else if (currentMode === 15) {
-    selectedCards = allCards.slice(0, 15);
-  } else {
-    selectedCards = allCards.slice(0, 20);
-  }
+  if (currentMode === 10) selectedCards = allCards.filter(c => c.id <= 10); 
+  else if (currentMode === 15) selectedCards = allCards.slice(0, 15);
+  else selectedCards = allCards.slice(0, 20);
 
   const shuffledProfs = shuffle([...PROFESSIONS]);
-  const shuffledPackages = shuffle([...PACKAGES]);
+  const shuffledQuests = shuffle([...PACKAGES]);
 
   selectedCards.forEach((card, index) => {
+    // 1. Выдаем случайную профессию
     card.alibiProfession = shuffledProfs[index % shuffledProfs.length];
     
-    const pkg = shuffledPackages[index % shuffledPackages.length];
-    card.image = pkg.img;
-    card.quote = pkg.quote;
-    
+    // 2. Выдаем случайный квест (только Строителям и Иконе)
     if (card.role === "Строитель" || card.role === "Икона сопротивления") {
-      card.quest = pkg.quest;
+      card.quest = shuffledQuests[index % shuffledQuests.length].quest;
     }
   });
 
+  // 3. Генерируем случайные шифры (номера)
   const shuffledLetters = shuffle([...CIPHER_LETTERS]);
   selectedCards.forEach((card, index) => {
     const letter = shuffledLetters[index % shuffledLetters.length];
@@ -84,6 +80,7 @@ function getCardsWithProfessions() {
     card.randomCipher = `${letter}-${number}`;
   });
 
+  // 4. Выбираем Мстителя (среди Строителей)
   const candidates = selectedCards.filter(c => c.role === "Строитель");
   if (candidates.length > 0) {
     const chosenOne = candidates[Math.floor(Math.random() * candidates.length)];
