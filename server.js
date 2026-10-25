@@ -16,23 +16,41 @@ let currentNight = 1;
 let currentMode = 10; 
 let gameCards = null;
 
-// 12 рандомных профессий (алиби)
 const PROFESSIONS = [
   "Инженер", "Архитектор", "Учитель", "Бухгалтер", 
   "Программист", "Электрик", "Сварщик", "Агроном", 
   "Геолог", "Машинист", "Библиотекарь", "Химик"
 ];
 
-// Буквы для номеров
 const CIPHER_LETTERS = ["А", "Б", "В", "Г", "Д", "Е", "Ж", "З", "И", "К", "Л", "М", "Н", "П", "Р", "С", "Т", "Ф"];
 
-// ТОЛЬКО ПРОРАБОТАННЫЕ ЦЕЛИ (5 штук для рандома)
+// Цели + привязка к файлам картинок (img)
 const GOALS = [
-  { img: "poet", name: "Поэт", task: "Расскажи историю, которую оценят 3 человека.", quote: "Я говорю — и стекло трещит." },
-  { img: "citizen", name: "Порядочный гражданин", task: "В течение дня соглашайся со всеми, но проголосуй против большинства.", quote: "Чтобы выжить в стеклянном доме — стань стеклом." },
-  { img: "lawyer", name: "Юрист", task: "Добейся, чтобы казнили того, за кого ты проголосовал.", quote: "Люди пишут правила. Люди ошибаются." },
-  { img: "pacifist", name: "Пацифист", task: "Промолчи всю игру (общайся только жестами).", quote: "Любовь важнее закона." },
-  { img: "propagandist", name: "Пропагандист", task: "Добейся, чтобы против тебя проголосовало 0 человек.", quote: "Толпа — механизм. Найди рычаг." }
+  { 
+    img: "poet", name: "Поэт", 
+    task: "Расскажи историю, которую оценят 3 человека.", 
+    quote: "Я говорю — и стекло трещит." 
+  },
+  { 
+    img: "citizen", name: "Порядочный нумер", 
+    task: "Ни разу не быть выбранным на голосование.", 
+    quote: "Чтобы выжить в стеклянном доме — стань стеклом." 
+  },
+  { 
+    img: "lawyer", name: "Юрист", 
+    task: "Оправдай того, на кого все думают.", 
+    quote: "Люди пишут правила. Люди ошибаются." 
+  },
+  { 
+    img: "pacifist", name: "Пацифист", 
+    task: "Сделай так, чтобы люди не голосовали один раз.", 
+    quote: "Любовь важнее закона." 
+  },
+  { 
+    img: "propagandist", name: "Агитатор", // Картинка от Пропагандиста, название - Агитатор
+    task: "Сделай так, чтобы за того, кого ты выбрал, проголосовало большинство.", 
+    quote: "Толпа — механизм. Найди рычаг." 
+  }
 ];
 
 function shuffle(array) {
@@ -62,32 +80,26 @@ function getCardsWithProfessions() {
   let goalIndex = 0;
 
   selectedCards.forEach((card, index) => {
-    // 1. Выдаем случайный номер и профессию
     card.alibiProfession = shuffledProfs[index % shuffledProfs.length];
     const letter = shuffledLetters[index % shuffledLetters.length];
     const number = Math.floor(Math.random() * 999) + 1;
     card.randomCipher = `${letter}-${number}`;
     
-    // 2. Выдаем цель
     if (card.role === "Строитель") {
-      // Строителям - случайная цель из списка
       const goal = shuffledGoals[goalIndex % shuffledGoals.length];
       goalIndex++;
-      card.image = goal.img;
+      card.image = goal.img; 
       card.quote = goal.quote;
       card.goalName = goal.name;
       card.quest = goal.task;
     } else if (card.role === "Икона сопротивления") {
-      // Иконе - её родная цель (жестко)
       card.image = "icon";
       card.quote = "Я — цитата, которую повторят после меня.";
       card.goalName = "«Икона сопротивления»";
-      card.quest = "Быть казнённой городом. Очков за твою смерть не получает никто.";
+      card.quest = "Умереть на голосовании. Очков за твою смерть не получает никто.";
     }
-    // У Врача, Хранителя и Мафии всё берется из cards.json
   });
 
-  // 3. Мститель (среди Строителей)
   const candidates = selectedCards.filter(c => c.role === "Строитель");
   if (candidates.length > 0) {
     const chosenOne = candidates[Math.floor(Math.random() * candidates.length)];
