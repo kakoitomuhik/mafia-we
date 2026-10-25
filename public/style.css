@@ -47,17 +47,13 @@ body::before {
   position: relative;
   overflow: hidden;
   
-  /* Стекло на самой карте */
-  background-color: rgba(10, 15, 30, 0.8);
-  background-image: url('glass.png');
-  background-size: cover;
-  background-position: center;
-  background-blend-mode: overlay;
+  /* Чистый фон для карты, чтобы обложки не вылезали */
+  background: rgba(10, 15, 30, 0.85);
 }
 @keyframes floatIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
 
 .card-inner {
-  background: rgba(10, 15, 30, 0.85); 
+  background: transparent; /* Прозрачный фон, чтобы обложка была видна */
   padding: 24px;
   border-radius: 19px; 
   height: 100%;
@@ -87,18 +83,18 @@ body::before {
 .side--integral { color: #69f0ae; }
 .side--resistance { color: #ff5252; }
 
-/* УБРАЛИ СТЕКЛО С ПРОФЕССИИ */
+/* ПРОФЕССИЯ (без стекла) */
 .card__alibi { 
   margin-top: 18px; padding: 12px 16px; 
-  background: rgba(120,170,255,0.1); /* Чистый цвет, без картинки */
+  background: rgba(120,170,255,0.1); 
   border-left: 4px solid #7aa7ff; border-radius: 8px; font-size: 16px; 
 }
 .card__alibi strong { color: #a8c4ff; }
 
-/* УБРАЛИ СТЕКЛО С ЦЕЛИ */
+/* ЦЕЛЬ (без стекла) */
 .card__goal { 
   margin-top: 18px; padding: 16px; 
-  background: rgba(255,200,100,0.08); /* Чистый цвет, без картинки */
+  background: rgba(255,200,100,0.08); 
   border: 1px dashed rgba(255,200,100,0.4); border-radius: 12px; 
 }
 .card__goal h3 { font-size: 18px; color: #ffd47a; margin-bottom: 8px; }
@@ -128,7 +124,7 @@ body::before {
 
 .banner-dead { 
   margin-top: 18px; padding: 16px; 
-  background: rgba(255,60,60,0.15); /* Убрал стекло */
+  background: rgba(255,60,60,0.15);
   border: 2px solid rgba(255,60,60,0.7); 
   border-radius: 10px; 
   font-size: 16px; color: #ff9a9a; text-align: center; 
@@ -137,7 +133,7 @@ body::before {
 }
 .banner-win { 
   margin-top: 14px; padding: 14px; 
-  background: rgba(80,255,160,0.08); /* Убрал стекло */
+  background: rgba(80,255,160,0.08);
   border: 1px solid rgba(80,255,160,0.4); border-radius: 10px; font-size: 15px; color: #8effc0; text-align: center; position: relative; z-index: 100; 
 }
 
@@ -147,22 +143,22 @@ body::before {
 .chat__log { max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
 .chat__empty { font-size: 14px; color: #55617a; text-align: center; padding: 10px; }
 
-/* УБРАЛИ СТЕКЛО С СООБЩЕНИЙ */
+/* СООБЩЕНИЯ (без стекла) */
 .msg { max-width: 85%; padding: 10px 14px; border-radius: 14px; font-size: 15px; line-height: 1.4; word-wrap: break-word; }
 .msg--player { align-self: flex-end; background: rgba(120,170,255,0.22); border: 1px solid rgba(120,170,255,0.4); }
 .msg--admin { align-self: flex-start; background: rgba(255,200,100,0.12); border: 1px solid rgba(255,200,100,0.3); color: #ffd47a; }
 .msg small { display: block; font-size: 11px; color: #667; margin-top: 4px; }
 
-/* УБРАЛИ СТЕКЛО С ПОЛЯ ВВОДА */
+/* ПОЛЕ ВВОДА (без стекла) */
 .chat__input { display: flex; gap: 8px; }
 .chat__input input { 
   flex: 1; padding: 14px 16px; border-radius: 10px; 
-  background: rgba(0,0,0,0.4); /* Чистый цвет */
+  background: rgba(0,0,0,0.4); 
   border: 1px solid #2a3a5a; color: #e8eef7; font-size: 16px; outline: none; 
 }
 .chat__input input:focus { border-color: #7aa7ff; }
 
-/* СТЕКЛО НА КНОПКЕ ОТПРАВИТЬ */
+/* КНОПКА ОТПРАВИТЬ (стекло) */
 .chat__input button { 
   padding: 14px 18px; border-radius: 10px; border: none; 
   background-color: #4a7fff; 
@@ -264,10 +260,9 @@ body::before {
   border: 1px solid rgba(120, 170, 255, 0.15); border-radius: 16px; padding: 20px; backdrop-filter: blur(10px);
 }
 
-/* УБРАЛИ СТЕКЛО С БОЛЬШОГО ПОЛЯ ЗАМЕТОК */
 .notes-textarea { 
   width: 100%; min-height: 400px; 
-  background: rgba(10, 15, 30, 0.6); /* Чистый цвет */
+  background: rgba(10, 15, 30, 0.6); 
   border: 1px solid rgba(120, 170, 255, 0.2); border-radius: 12px; color: #e8eef7; padding: 20px; font-family: inherit; font-size: 16px; line-height: 1.6; resize: vertical; margin-bottom: 20px; 
 }
 .notes-textarea:focus { outline: none; border-color: #7aa7ff; box-shadow: 0 0 15px rgba(122, 167, 255, 0.2); }
