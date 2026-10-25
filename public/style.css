@@ -1,11 +1,9 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
   font-family: 'Montserrat', -apple-system, "Segoe UI", Roboto, sans-serif;
-  
-  /* Темный градиент */
-  background: radial-gradient(circle at 30% 20%, #1a2540, #06080f 70%);
+  background-color: #06080f; 
+  background-image: radial-gradient(circle at 30% 20%, #1a2540, #06080f 70%);
   background-attachment: fixed;
-  
   color: #e8eef7; 
   min-height: 100vh; 
   padding: 16px;
@@ -24,20 +22,21 @@ body {
 
 .card {
   width: 100%; max-width: 420px;
-  border: 1px solid rgba(120, 170, 255, 0.25);
+  border: 1px solid rgba(120, 170, 255, 0.4);
   border-radius: 20px; 
-  box-shadow: 0 20px 60px rgba(0, 40, 120, 0.4);
+  box-shadow: 0 20px 60px rgba(0, 40, 120, 0.6);
   animation: floatIn 0.6s ease;
   position: relative;
   overflow: hidden;
   
-  /* Фон карты (обложка будет ставиться через inline-стиль в HTML) */
-  background: rgba(10, 15, 30, 0.85);
+  /* Делаем фон карты ПОЛУПРОЗРАЧНЫМ, чтобы обложка (bg-alive) просвечивала */
+  background-color: rgba(10, 15, 30, 0.6); 
 }
 @keyframes floatIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
 
 .card-inner {
-  background: transparent; 
+  /* Внутренняя подложка: темная, чтобы текст читался, но пропускает обложку */
+  background-color: rgba(10, 15, 30, 0.85); 
   padding: 24px;
   border-radius: 19px; 
   height: 100%;
@@ -49,7 +48,7 @@ body {
 
 .card__portrait {
   width: 100%; aspect-ratio: 1; border-radius: 16px;
-  background: linear-gradient(135deg, #1c2c4d, #0d1526);
+  background: #0d1526;
   display: flex; align-items: center; justify-content: center;
   font-size: 16px; color: #6f8bb5; overflow: hidden; position: relative;
 }
@@ -70,20 +69,21 @@ body {
 /* ПРОФЕССИЯ */
 .card__alibi { 
   margin-top: 18px; padding: 12px 16px; 
-  background: rgba(120,170,255,0.1); 
-  border: 1px solid rgba(120,170,255,0.3);
+  background: rgba(20, 30, 50, 0.95); /* Плотный фон для текста */
+  border: 1px solid rgba(120,170,255,0.4);
   border-left: 4px solid #7aa7ff; border-radius: 8px; font-size: 16px; 
+  color: #fff;
 }
 .card__alibi strong { color: #a8c4ff; }
 
 /* ЦЕЛЬ */
 .card__goal { 
   margin-top: 18px; padding: 16px; 
-  background: rgba(255,200,100,0.08); 
-  border: 1px dashed rgba(255,200,100,0.4); border-radius: 12px; 
+  background: rgba(30, 25, 20, 0.95); /* Плотный фон для текста */
+  border: 1px dashed rgba(255,200,100,0.6); border-radius: 12px; 
 }
 .card__goal h3 { font-size: 18px; color: #ffd47a; margin-bottom: 8px; }
-.card__goal p { font-size: 15px; line-height: 1.5; color: #e8eef7; }
+.card__goal p { font-size: 15px; line-height: 1.5; color: #fff; }
 
 .card__legend { margin-top: 18px; font-size: 15px; line-height: 1.6; color: #c4b8ff; font-style: italic; }
 .card__quote { margin-top: 16px; font-size: 16px; color: #c4b8ff; text-align: center; padding: 12px; border-top: 1px solid #2a3a5a; font-weight: 500; }
@@ -91,7 +91,7 @@ body {
 /* Эффект смерти */
 .card--dead {
   border-color: #ff3333 !important; 
-  box-shadow: 0 0 30px rgba(255, 0, 0, 0.4) !important; 
+  box-shadow: 0 0 30px rgba(255, 0, 0, 0.6) !important; 
 }
 .dead-portrait { position: relative; }
 .dead-portrait::before {
@@ -109,8 +109,8 @@ body {
 
 .banner-dead { 
   margin-top: 18px; padding: 16px; 
-  background: rgba(255,60,60,0.15);
-  border: 2px solid rgba(255,60,60,0.7); 
+  background: rgba(50, 10, 10, 0.95);
+  border: 2px solid rgba(255,60,60,0.8); 
   border-radius: 10px; 
   font-size: 16px; color: #ff9a9a; text-align: center; 
   z-index: 100; position: relative;
@@ -118,52 +118,53 @@ body {
 }
 .banner-win { 
   margin-top: 14px; padding: 14px; 
-  background: rgba(80,255,160,0.08);
-  border: 1px solid rgba(80,255,160,0.4); border-radius: 10px; font-size: 15px; color: #8effc0; text-align: center; position: relative; z-index: 100; 
+  background: rgba(10, 50, 30, 0.95);
+  border: 1px solid rgba(80,255,160,0.6); border-radius: 10px; font-size: 15px; color: #8effc0; text-align: center; position: relative; z-index: 100; 
 }
 
 /* Чат на карте */
 .chat { margin-top: 20px; padding-top: 18px; border-top: 1px solid rgba(120,170,255,0.2); position: relative; z-index: 100; }
 .chat h4 { font-size: 15px; color: #7aa7ff; margin-bottom: 12px; letter-spacing: 1px; text-transform: uppercase; }
 .chat__log { max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
-.chat__empty { font-size: 14px; color: #55617a; text-align: center; padding: 10px; }
+.chat__empty { font-size: 14px; color: #889; text-align: center; padding: 10px; }
 
 .msg { max-width: 85%; padding: 10px 14px; border-radius: 14px; font-size: 15px; line-height: 1.4; word-wrap: break-word; }
-.msg--player { align-self: flex-end; background: rgba(120,170,255,0.22); border: 1px solid rgba(120,170,255,0.4); }
-.msg--admin { align-self: flex-start; background: rgba(255,200,100,0.12); border: 1px solid rgba(255,200,100,0.3); color: #ffd47a; }
-.msg small { display: block; font-size: 11px; color: #a8c4ff; margin-top: 4px; }
+.msg--player { align-self: flex-end; background: rgba(40, 60, 100, 0.95); border: 1px solid rgba(120,170,255,0.5); color: #fff; }
+.msg--admin { align-self: flex-start; background: rgba(60, 50, 20, 0.95); border: 1px solid rgba(255,200,100,0.5); color: #ffd47a; }
+.msg small { display: block; font-size: 11px; color: #aaa; margin-top: 4px; }
 
 .chat__input { display: flex; gap: 8px; }
 .chat__input input { 
   flex: 1; padding: 14px 16px; border-radius: 10px; 
-  background: rgba(0,0,0,0.4); 
-  border: 1px solid #2a3a5a; color: #e8eef7; font-size: 16px; outline: none; 
+  background: rgba(0,0,0,0.8); 
+  border: 1px solid #2a3a5a; color: #fff; font-size: 16px; outline: none; 
 }
 .chat__input input:focus { border-color: #7aa7ff; }
 
 .chat__input button { 
-  padding: 14px 18px; border-radius: 10px; border: none; 
+  padding: 14px 18px; border-radius: 10px; border: 1px solid rgba(120,170,255,0.5); 
   background-color: #4a7fff; 
   background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
   color: white; font-size: 16px; cursor: pointer; font-weight: bold; 
+  text-shadow: 1px 1px 3px black;
 }
 .chat__input button:hover { background-color: #5a8fff; }
 
-/* Кнопки пола */
 .btn-gender {
-  background-color: rgba(120,170,255,0.15);
+  background-color: rgba(120,170,255,0.2);
   background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
-  border: 1px solid rgba(120,170,255,0.4);
-  color: #a8c4ff;
+  border: 1px solid rgba(120,170,255,0.5);
+  color: #fff;
   padding: 15px 30px;
   border-radius: 12px;
   font-size: 18px;
   cursor: pointer;
   transition: 0.2s;
   font-weight: bold;
+  text-shadow: 1px 1px 3px black;
 }
 .btn-gender:hover {
-  background-color: rgba(120,170,255,0.3);
+  background-color: rgba(120,170,255,0.4);
   border-color: #7aa7ff;
   transform: scale(1.05);
 }
@@ -180,11 +181,11 @@ body {
 
 .tabs { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; flex-wrap: wrap; }
 .tab { 
-  background-color: rgba(18, 26, 44, 0.7); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
-  border: 1px solid rgba(120, 170, 255, 0.3); color: #a8c4ff; padding: 12px 24px; border-radius: 12px; cursor: pointer; font-size: 15px; font-weight: bold;
+  background-color: rgba(18, 26, 44, 0.9); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  border: 1px solid rgba(120, 170, 255, 0.4); color: #a8c4ff; padding: 12px 24px; border-radius: 12px; cursor: pointer; font-size: 15px; font-weight: bold;
   transition: all 0.3s ease; text-shadow: 1px 1px 3px black;
 }
-.tab--active { background-color: rgba(120, 170, 255, 0.3); border-color: #7aa7ff; color: #fff; box-shadow: 0 0 20px rgba(120, 170, 255, 0.6); }
+.tab--active { background-color: rgba(120, 170, 255, 0.4); border-color: #7aa7ff; color: #fff; box-shadow: 0 0 20px rgba(120, 170, 255, 0.6); }
 
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
@@ -192,66 +193,66 @@ body {
 
 .mode-control {
   display: flex; gap: 15px; align-items: center; justify-content: center;
-  background-color: rgba(18, 26, 44, 0.7); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
-  border: 1px solid rgba(120, 170, 255, 0.2); border-radius: 16px; padding: 15px 20px; margin-bottom: 20px;
+  background-color: rgba(18, 26, 44, 0.9); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  border: 1px solid rgba(120, 170, 255, 0.3); border-radius: 16px; padding: 15px 20px; margin-bottom: 20px;
 }
 .mode-control label { color: #a8c4ff; font-weight: bold; font-size: 15px; letter-spacing: 1px; text-shadow: 1px 1px 2px black; }
 .mode-control select {
   padding: 10px 15px; border-radius: 10px;
-  background-color: rgba(10, 15, 30, 0.8); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  background-color: rgba(10, 15, 30, 0.9); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
   color: #fff; border: 1px solid #4a7fff; font-size: 15px; outline: none; cursor: pointer;
 }
 
 .admin__list { display: grid; gap: 12px; }
 .admin__row { 
   display: grid; grid-template-columns: 1fr auto auto; gap: 15px; align-items: center; padding: 16px 20px;
-  background-color: rgba(10, 15, 30, 0.6); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
-  border: 1px solid rgba(120, 170, 255, 0.3); border-radius: 16px; font-size: 15px; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  background-color: rgba(10, 15, 30, 0.9); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  border: 1px solid rgba(120, 170, 255, 0.4); border-radius: 16px; font-size: 15px; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
-.admin__row:hover { background-color: rgba(10, 15, 30, 0.8); border-color: rgba(120, 170, 255, 0.8); transform: translateY(-2px); }
+.admin__row:hover { background-color: rgba(10, 15, 30, 1); border-color: rgba(120, 170, 255, 0.9); transform: translateY(-2px); }
 .admin__row strong { color: #fff; font-size: 16px; text-shadow: 1px 1px 2px black; }
 .admin__row small { color: #a8c4ff; display: block; margin-top: 6px; font-size: 13px; text-shadow: 1px 1px 2px black; }
 
 .btn-dead, .btn-win { 
-  background-color: rgba(120, 170, 255, 0.1); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
-  border: 1px solid rgba(120, 170, 255, 0.4); color: #fff; padding: 10px 16px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: bold;
+  background-color: rgba(120, 170, 255, 0.2); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  border: 1px solid rgba(120, 170, 255, 0.5); color: #fff; padding: 10px 16px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: bold;
   transition: all 0.3s ease; min-width: 90px; text-shadow: 1px 1px 3px black;
 }
-.btn-dead.on { background-color: rgba(255, 50, 50, 0.6); border-color: #ff5252; box-shadow: 0 0 20px rgba(255, 50, 50, 0.7); }
-.btn-win.on { background-color: rgba(50, 255, 150, 0.5); border-color: #69f0ae; box-shadow: 0 0 20px rgba(50, 255, 150, 0.7); }
+.btn-dead.on { background-color: rgba(255, 50, 50, 0.7); border-color: #ff5252; box-shadow: 0 0 20px rgba(255, 50, 50, 0.7); }
+.btn-win.on { background-color: rgba(50, 255, 150, 0.6); border-color: #69f0ae; box-shadow: 0 0 20px rgba(50, 255, 150, 0.7); }
 
 .control-buttons { display: flex; gap: 15px; justify-content: center; margin-top: 30px; }
 .btn-ghost { 
-  background-color: rgba(18, 26, 44, 0.8); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
-  border: 1px solid rgba(120, 170, 255, 0.4); color: #fff; padding: 12px 24px; border-radius: 12px; cursor: pointer; font-size: 15px; font-weight: bold;
+  background-color: rgba(18, 26, 44, 0.9); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  border: 1px solid rgba(120, 170, 255, 0.5); color: #fff; padding: 12px 24px; border-radius: 12px; cursor: pointer; font-size: 15px; font-weight: bold;
   transition: all 0.3s ease; text-shadow: 1px 1px 3px black;
 }
-.btn-ghost.danger { border-color: rgba(255, 90, 90, 0.6); color: #ff9a9a; }
+.btn-ghost.danger { border-color: rgba(255, 90, 90, 0.7); color: #ff9a9a; }
 
 .chats { display: grid; gap: 15px; }
 .chat-block { 
-  background-color: rgba(18, 26, 44, 0.7); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
-  border: 1px solid rgba(120, 170, 255, 0.15); border-radius: 16px; padding: 20px;
+  background-color: rgba(18, 26, 44, 0.9); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  border: 1px solid rgba(120, 170, 255, 0.3); border-radius: 16px; padding: 20px;
 }
-.chat-block__head { font-size: 16px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid rgba(120, 170, 255, 0.1); }
+.chat-block__head { font-size: 16px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid rgba(120, 170, 255, 0.2); }
 .chat-block__head strong { color: #a8c4ff; }
-.chat-block__head small { color: #7a879e; margin-left: 8px; font-size: 13px; }
+.chat-block__head small { color: #889; margin-left: 8px; font-size: 13px; }
 
 .notes-block { 
-  background-color: rgba(18, 26, 44, 0.7); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
-  border: 1px solid rgba(120, 170, 255, 0.15); border-radius: 16px; padding: 20px;
+  background-color: rgba(18, 26, 44, 0.9); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  border: 1px solid rgba(120, 170, 255, 0.3); border-radius: 16px; padding: 20px;
 }
 
 .notes-textarea { 
   width: 100%; min-height: 400px; 
-  background: rgba(10, 15, 30, 0.6); 
-  border: 1px solid rgba(120, 170, 255, 0.2); border-radius: 12px; color: #e8eef7; padding: 20px; font-family: inherit; font-size: 16px; line-height: 1.6; resize: vertical; margin-bottom: 20px; 
+  background: rgba(10, 15, 30, 0.9); 
+  border: 1px solid rgba(120, 170, 255, 0.3); border-radius: 12px; color: #fff; padding: 20px; font-family: inherit; font-size: 16px; line-height: 1.6; resize: vertical; margin-bottom: 20px; 
 }
 .notes-textarea:focus { outline: none; border-color: #7aa7ff; box-shadow: 0 0 15px rgba(122, 167, 255, 0.2); }
 
 .btn-save-notes { 
-  background-color: rgba(120, 170, 255, 0.15); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
-  border: 1px solid rgba(120, 170, 255, 0.4); color: #a8c4ff; padding: 12px 24px; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; 
+  background-color: rgba(120, 170, 255, 0.2); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  border: 1px solid rgba(120, 170, 255, 0.5); color: #fff; padding: 12px 24px; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; text-shadow: 1px 1px 3px black;
 }
 
 @media (max-width: 600px) {
