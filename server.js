@@ -14,7 +14,7 @@ let chat = {};
 let usedTokens = {}; 
 let currentNight = 1;
 let currentMode = 10; 
-let gameCards = null; // Память для карт (чтобы квесты не менялись)
+let gameCards = null;
 
 const PROFESSIONS = [
   "Инженер", "Архитектор", "Учитель", "Бухгалтер", 
@@ -24,23 +24,18 @@ const PROFESSIONS = [
 
 const CIPHER_LETTERS = ["А", "Б", "В", "Г", "Д", "Е", "Ж", "З", "И", "К", "Л", "М", "Н", "П", "Р", "С", "Т", "Ф"];
 
-const QUESTS = [
-  "«Смутьян»: Добейся, чтобы против тебя проголосовало 0 человек.",
-  "«Молчун»: Промолчи всю игру (только жесты).",
-  "«Хроникёр»: Запиши и перескажи ведущему 3 самых громких обвинения за день.",
-  "«Дипломат»: Договорись с любым игроком о негласном союзе (сообщи ведущему в чат).",
-  "«Свидетель»: Угадай роль любого выбывшего игрока и отправь ответ в чат ведущему.",
-  "«Судья»: Добейся, чтобы в первый день казнили того, за кого ты проголосовал.",
-  "«Аналитик»: Правильно назови Лидера сопротивления (отправь в чат ведущему).",
-  "«Шептун»: Угадай, кто мафия, и отправь его имя в чат ведущему.",
-  "«Игрок»: На первом голосовании проголосуй за того, кто окажется мирным.",
-  "«Смельчак»: Выдвинь на казнь самого активного игрока за столом.",
-  "«Тень»: В течение дня соглашайся со всеми, но проголосуй против большинства.",
-  "«Поэт»: Отправь ведущему в чат короткий стих (2 строчки) о стеклянных стенах.",
-  "«Шпион»: Узнай профессию (алиби) любого игрока и отправь её в чат ведущему.",
-  "«Наблюдатель»: Отправь в чат ведущему имя самого тихого игрока за столом.",
-  "«Инженер»: Отправь в чат ведущему «план ремонта Интеграла».",
-  "«Хранитель времени»: Проживи до конца игры, не нарушив правил."
+// Связанные пакеты: Картинка + Квест + Цитата
+const PACKAGES = [
+  { img: "poet", quest: "«Поэт»: Расскажи историю, которую оценят 3 человека.", quote: "Я говорю — и стекло трещит." },
+  { img: "propagandist", quest: "«Смутьян»: Добейся, чтобы против тебя проголосовало 0 человек.", quote: "Толпа — механизм. Найди рычаг." },
+  { img: "lawyer", quest: "«Судья»: Добейся, чтобы казнили того, за кого ты проголосовал.", quote: "Люди пишут правила. Люди ошибаются." },
+  { img: "citizen", quest: "«Тень»: В течение дня соглашайся со всеми, но проголосуй против большинства.", quote: "Чтобы выжить в стеклянном доме — стань стеклом." },
+  { img: "pacifist", quest: "«Молчун»: Промолчи всю игру (общайся только жестами).", quote: "Любовь важнее закона." },
+  { img: "icon", quest: "«Хранитель времени»: Проживи до конца игры, ни разу не нарушив правила.", quote: "Я — цитата, которую повторят после меня." },
+  { img: "dissident", quest: "«Смельчак»: Выдвинь на казнь самого активного игрока за столом.", quote: "Я просто ускоряю процесс." },
+  { img: "leader", quest: "«Игрок»: На первом голосовании проголосуй за того, кто окажется мирным.", quote: "Они думают, что ловят меня. Это я решаю, кого они поймают." },
+  { img: "doctor", quest: "«Хранитель времени»: Проживи до конца игры, ни разу не нарушив правила.", quote: "Интеграл — это не стены. Это люди." },
+  { img: "guardian", quest: "«Смутьян»: Добейся, чтобы против тебя проголосовало 0 человек.", quote: "Я не ищу врагов. Я нахожу сбои." }
 ];
 
 function shuffle(array) {
@@ -54,7 +49,7 @@ function shuffle(array) {
 }
 
 function getCardsWithProfessions() {
-  if (gameCards) return gameCards; // Если уже сгенерировали — отдаем как есть
+  if (gameCards) return gameCards; 
 
   let allCards = JSON.parse(fs.readFileSync(CARDS_FILE, 'utf8'));
   let selectedCards = [];
@@ -67,13 +62,21 @@ function getCardsWithProfessions() {
     selectedCards = allCards.slice(0, 20);
   }
 
-  // 1. Профессии
   const shuffledProfs = shuffle([...PROFESSIONS]);
+  const shuffledPackages = shuffle([...PACKAGES]);
+
   selectedCards.forEach((card, index) => {
     card.alibiProfession = shuffledProfs[index % shuffledProfs.length];
+    
+    const pkg = shuffledPackages[index % shuffledPackages.length];
+    card.image = pkg.img;
+    card.quote = pkg.quote;
+    
+    if (card.role === "Строитель" || card.role === "Икона сопротивления") {
+      card.quest = pkg.quest;
+    }
   });
 
-  // 2. Шифры
   const shuffledLetters = shuffle([...CIPHER_LETTERS]);
   selectedCards.forEach((card, index) => {
     const letter = shuffledLetters[index % shuffledLetters.length];
@@ -81,14 +84,6 @@ function getCardsWithProfessions() {
     card.randomCipher = `${letter}-${number}`;
   });
 
-  // 3. Квесты (только Строителям)
-  selectedCards.forEach(card => {
-    if (card.role === "Строитель") {
-      card.quest = QUESTS[Math.floor(Math.random() * QUESTS.length)];
-    }
-  });
-
-  // 4. Мститель (только среди Строителей)
   const candidates = selectedCards.filter(c => c.role === "Строитель");
   if (candidates.length > 0) {
     const chosenOne = candidates[Math.floor(Math.random() * candidates.length)];
@@ -132,7 +127,7 @@ app.post('/api/next-night', (_, res) => {
 
 app.post('/api/reset', (_, res) => {
   state = {}; chat = {}; usedTokens = {}; currentNight = 1;
-  gameCards = null; // Очищаем память, чтобы при следующем запросе всё перемешалось заново
+  gameCards = null; 
   res.json({ ok: true });
 });
 
