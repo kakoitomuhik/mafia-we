@@ -207,12 +207,16 @@
         if (card.goalName === "«Неуловимый»") displayGoal = "«Неуловимая»";
       }
 
+      // МАСКИРОВКА ИКОНЫ (Роль скрываем, но цель оставляем)
+      if (card.role === "Икона сопротивления") {
+        displayRole = isFemale ? "Строительница" : "Строитель";
+        // Оставляем displayGoal как есть (он будет "«Икона сопротивления»")
+      }
+
       let displayQuote = card.quote;
       if (card.alibiProfession === "Библиотекарь") displayQuote = "Любовь важнее закона.";
       const wordDeadFinal = isFemale ? 'дезинтегрирована' : 'дезинтегрирован';
       const wordProfession = isFemale ? 'Специальность' : 'Профессия';
-
-      const showQuest = card.quest && card.role !== "Икона сопротивления";
 
       app.innerHTML = `
         <div class="card ${st.dead ? 'card--dead' : ''}" style="background-image: url('${bgImage}'); background-size: cover; background-position: center;">
@@ -226,7 +230,7 @@
               <div class="card__side ${sideClass}">${sideText}</div>
               <div class="card__alibi"><strong>${wordProfession}:</strong> ${displayAlibi}</div>
               
-              ${showQuest ? `<div class="card__goal" style="background: rgba(80,255,160,0.1); border-color: #69f0ae;"><h3 style="color:#69f0ae;">Квест</h3><p>${card.quest}</p></div>` : ''}
+              ${card.quest ? `<div class="card__goal" style="background: rgba(80,255,160,0.1); border-color: #69f0ae;"><h3 style="color:#69f0ae;">Квест</h3><p>${card.quest}</p></div>` : ''}
 
               <div class="card__goal">
                 <h3>Цель ${displayGoal}</h3>
