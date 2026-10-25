@@ -11,6 +11,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 let state = {}; 
 let chat = {}; 
+let votes = {}; // Память для голосов
 let usedTokens = {}; 
 let currentNight = 1;
 let currentMode = 10; 
@@ -25,41 +26,11 @@ const PROFESSIONS = [
 const CIPHER_LETTERS = ["А", "Б", "В", "Г", "Д", "Е", "Ж", "З", "И", "К", "Л", "М", "Н", "П", "Р", "С", "Т", "Ф"];
 
 const GOALS = [
-  { 
-    img: "poet", 
-    name: "Поэт", 
-    nameF: "Поэтесса",
-    task: "Расскажи историю, которую оценят 3 человека.", 
-    quote: "Я говорю — и стекло трещит." 
-  },
-  { 
-    img: "citizen", 
-    name: "Порядочный нумер", 
-    nameF: "Порядочная нумер",
-    task: "Ни разу не быть выбранным на голосование.", 
-    quote: "Чтобы выжить в стеклянном доме — стань стеклом." 
-  },
-  { 
-    img: "lawyer", 
-    name: "Юрист", 
-    nameF: "Юристка",
-    task: "Оправдай того, на кого все думают (добейся, чтобы его не казнили).", 
-    quote: "Люди пишут правила. Люди ошибаются." 
-  },
-  { 
-    img: "pacifist", 
-    name: "Пацифист", 
-    nameF: "Пацифистка",
-    task: "Сделай так, чтобы люди не голосовали (все воздержались) хотя бы один раз.", 
-    quote: "Любовь важнее закона." 
-  },
-  { 
-    img: "propagandist", 
-    name: "Агитатор", 
-    nameF: "Агитаторша",
-    task: "Сделай так, чтобы за того, кого ты выбрал, проголосовало большинство.", 
-    quote: "Толпа — механизм. Найди рычаг." 
-  }
+  { img: "poet", name: "Поэт", nameF: "Поэтесса", task: "Расскажи историю, которую оценят 3 человека.", quote: "Я говорю — и стекло трещит." },
+  { img: "citizen", name: "Порядочный нумер", nameF: "Порядочная нумер", task: "Ни разу не быть выбранным на голосование.", quote: "Чтобы выжить в стеклянном доме — стань стеклом." },
+  { img: "lawyer", name: "Юрист", nameF: "Юристка", task: "Оправдай того, на кого все думают (добейся, чтобы его не казнили).", quote: "Люди пишут правила. Люди ошибаются." },
+  { img: "pacifist", name: "Пацифист", nameF: "Пацифистка", task: "Сделай так, чтобы люди не голосовали (все воздержались) хотя бы один раз.", quote: "Любовь важнее закона." },
+  { img: "propagandist", name: "Агитатор", nameF: "Агитаторша", task: "Сделай так, чтобы за того, кого ты выбрал, проголосовало большинство.", quote: "Толпа — механизм. Найди рычаг." }
 ];
 
 function shuffle(array) {
@@ -97,16 +68,16 @@ function getCardsWithProfessions() {
     if (card.role === "Строитель") {
       const goal = shuffledGoals[goalIndex % shuffledGoals.length];
       goalIndex++;
-      card.image = goal.img; 
+      card.image = goal.img;
       card.quote = goal.quote;
       card.goalName = goal.name;
-      card.goalNameF = goal.nameF; // Сохраняем женский вариант
+      card.goalNameF = goal.nameF;
       card.quest = goal.task;
     } else if (card.role === "Икона сопротивления") {
       card.image = "icon";
       card.quote = "Я — цитата, которую повторят после меня.";
       card.goalName = "«Икона сопротивления»";
-      card.goalNameF = "«Икона сопротивления»"; // Женский вариант
+      card.goalNameF = "«Икона сопротивления»";
       card.quest = "Умереть на голосовании. Очков за твою смерть не получает никто.";
     }
   });
@@ -135,11 +106,22 @@ app.get('/api/cards', (req, res) => {
 });
 
 app.get('/api/state', (_, res) => res.json({ cards: state, night: currentNight, mode: currentMode }));
-
 app.post('/api/state/:id', (req, res) => {
   const id = req.params.id;
   state[id] = { ...(state[id] || {}), ...req.body };
   res.json(state[id]);
+});
+
+// --- ГОЛОСОВАНИЕ ---
+app.get('/api/votes', (_, res) => res.json(votes));
+app.post('/api/vote', (req, res) => {
+  const { voterId, targetId } = req.body;
+  if (voterId) votes[voterId] = targetId;
+  res.json({ ok: true, votes });
+});
+app.post('/api/reset-votes', (_, res) => {
+  votes = {};
+  res.json({ ok: true });
 });
 
 app.post('/api/set-mode', (req, res) => {
@@ -153,7 +135,7 @@ app.post('/api/next-night', (_, res) => {
 });
 
 app.post('/api/reset', (_, res) => {
-  state = {}; chat = {}; usedTokens = {}; currentNight = 1;
+  state = {}; chat = {}; votes = {}; usedTokens = {}; currentNight = 1;
   gameCards = null; 
   res.json({ ok: true });
 });
