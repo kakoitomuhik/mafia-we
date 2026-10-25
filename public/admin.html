@@ -111,7 +111,6 @@
         modeSelect.value = stateData.mode || 10;
         renderPlayers();
         
-        // Обновляем статус голосования
         const voteRes = await fetch('/api/voting-status');
         const voteStatus = await voteRes.json();
         votingStatus = voteStatus.isVotingOpen;
@@ -129,6 +128,7 @@
 
       } catch (e) {
         listEl.innerHTML = '<span style="color:red">Ошибка загрузки данных.</span>';
+        console.error(e);
       }
     }
 
