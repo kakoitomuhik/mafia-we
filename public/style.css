@@ -26,7 +26,7 @@ body::before {
   background-image: url('glass.png');
   background-size: cover;
   background-position: center;
-  opacity: 0.15; /* Прозрачность стекла */
+  opacity: 0.15; 
   z-index: -1; 
   pointer-events: none; 
 }
@@ -46,6 +46,13 @@ body::before {
   animation: floatIn 0.6s ease;
   position: relative;
   overflow: hidden;
+  
+  /* Стекло на самой карте */
+  background-color: rgba(10, 15, 30, 0.8);
+  background-image: url('glass.png');
+  background-size: cover;
+  background-position: center;
+  background-blend-mode: overlay;
 }
 @keyframes floatIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
 
@@ -80,10 +87,20 @@ body::before {
 .side--integral { color: #69f0ae; }
 .side--resistance { color: #ff5252; }
 
-.card__alibi { margin-top: 18px; padding: 12px 16px; background: rgba(120,170,255,0.1); border-left: 4px solid #7aa7ff; border-radius: 8px; font-size: 16px; }
+.card__alibi { 
+  margin-top: 18px; padding: 12px 16px; 
+  background-color: rgba(120,170,255,0.1); 
+  background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  border-left: 4px solid #7aa7ff; border-radius: 8px; font-size: 16px; 
+}
 .card__alibi strong { color: #a8c4ff; }
 
-.card__goal { margin-top: 18px; padding: 16px; background: rgba(255,200,100,0.08); border: 1px dashed rgba(255,200,100,0.4); border-radius: 12px; }
+.card__goal { 
+  margin-top: 18px; padding: 16px; 
+  background-color: rgba(255,200,100,0.08); 
+  background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  border: 1px dashed rgba(255,200,100,0.4); border-radius: 12px; 
+}
 .card__goal h3 { font-size: 18px; color: #ffd47a; margin-bottom: 8px; }
 .card__goal p { font-size: 15px; line-height: 1.5; }
 
@@ -111,14 +128,20 @@ body::before {
 
 .banner-dead { 
   margin-top: 18px; padding: 16px; 
-  background: rgba(255,60,60,0.15); 
+  background-color: rgba(255,60,60,0.15); 
+  background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
   border: 2px solid rgba(255,60,60,0.7); 
   border-radius: 10px; 
   font-size: 16px; color: #ff9a9a; text-align: center; 
   z-index: 100; position: relative;
   line-height: 1.5;
 }
-.banner-win { margin-top: 14px; padding: 14px; background: rgba(80,255,160,0.08); border: 1px solid rgba(80,255,160,0.4); border-radius: 10px; font-size: 15px; color: #8effc0; text-align: center; position: relative; z-index: 100; }
+.banner-win { 
+  margin-top: 14px; padding: 14px; 
+  background-color: rgba(80,255,160,0.08); 
+  background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  border: 1px solid rgba(80,255,160,0.4); border-radius: 10px; font-size: 15px; color: #8effc0; text-align: center; position: relative; z-index: 100; 
+}
 
 /* Чат на карте */
 .chat { margin-top: 20px; padding-top: 18px; border-top: 1px solid rgba(120,170,255,0.2); position: relative; z-index: 100; }
@@ -126,18 +149,39 @@ body::before {
 .chat__log { max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
 .chat__empty { font-size: 14px; color: #55617a; text-align: center; padding: 10px; }
 .msg { max-width: 85%; padding: 10px 14px; border-radius: 14px; font-size: 15px; line-height: 1.4; word-wrap: break-word; }
-.msg--player { align-self: flex-end; background: rgba(120,170,255,0.22); border: 1px solid rgba(120,170,255,0.4); }
-.msg--admin { align-self: flex-start; background: rgba(255,200,100,0.12); border: 1px solid rgba(255,200,100,0.3); color: #ffd47a; }
+.msg--player { 
+  align-self: flex-end; 
+  background-color: rgba(120,170,255,0.22); 
+  background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  border: 1px solid rgba(120,170,255,0.4); 
+}
+.msg--admin { 
+  align-self: flex-start; 
+  background-color: rgba(255,200,100,0.12); 
+  background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  border: 1px solid rgba(255,200,100,0.3); color: #ffd47a; 
+}
 .msg small { display: block; font-size: 11px; color: #667; margin-top: 4px; }
 .chat__input { display: flex; gap: 8px; }
-.chat__input input { flex: 1; padding: 14px 16px; border-radius: 10px; background: rgba(0,0,0,0.4); border: 1px solid #2a3a5a; color: #e8eef7; font-size: 16px; outline: none; }
+.chat__input input { 
+  flex: 1; padding: 14px 16px; border-radius: 10px; 
+  background-color: rgba(0,0,0,0.4); 
+  background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  border: 1px solid #2a3a5a; color: #e8eef7; font-size: 16px; outline: none; 
+}
 .chat__input input:focus { border-color: #7aa7ff; }
-.chat__input button { padding: 14px 18px; border-radius: 10px; border: none; background: #4a7fff; color: white; font-size: 16px; cursor: pointer; font-weight: bold; }
-.chat__input button:hover { background: #5a8fff; }
+.chat__input button { 
+  padding: 14px 18px; border-radius: 10px; border: none; 
+  background-color: #4a7fff; 
+  background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  color: white; font-size: 16px; cursor: pointer; font-weight: bold; 
+}
+.chat__input button:hover { background-color: #5a8fff; }
 
 /* Кнопки пола */
 .btn-gender {
-  background: rgba(120,170,255,0.15);
+  background-color: rgba(120,170,255,0.15);
+  background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
   border: 1px solid rgba(120,170,255,0.4);
   color: #a8c4ff;
   padding: 15px 30px;
@@ -148,7 +192,7 @@ body::before {
   font-weight: bold;
 }
 .btn-gender:hover {
-  background: rgba(120,170,255,0.3);
+  background-color: rgba(120,170,255,0.3);
   border-color: #7aa7ff;
   transform: scale(1.05);
 }
@@ -242,7 +286,8 @@ body::before {
 .mode-control select {
   padding: 10px 15px;
   border-radius: 10px;
-  background: rgba(10, 15, 30, 0.8);
+  background-color: rgba(10, 15, 30, 0.8);
+  background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
   color: #fff;
   border: 1px solid #4a7fff;
   font-size: 15px;
@@ -405,7 +450,8 @@ body::before {
 .notes-textarea { 
   width: 100%; 
   min-height: 400px; 
-  background: rgba(10, 15, 30, 0.6); 
+  background-color: rgba(10, 15, 30, 0.6); 
+  background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
   border: 1px solid rgba(120, 170, 255, 0.2); 
   border-radius: 12px; 
   color: #e8eef7; 
@@ -424,7 +470,8 @@ body::before {
 }
 
 .btn-save-notes { 
-  background: rgba(120, 170, 255, 0.15); 
+  background-color: rgba(120, 170, 255, 0.15); 
+  background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
   border: 1px solid rgba(120, 170, 255, 0.4); 
   color: #a8c4ff; 
   padding: 12px 24px; 
@@ -436,7 +483,7 @@ body::before {
 }
 
 .btn-save-notes:hover { 
-  background: rgba(120, 170, 255, 0.3); 
+  background-color: rgba(120, 170, 255, 0.3); 
   box-shadow: 0 0 15px rgba(120, 170, 255, 0.4);
 }
 
