@@ -12,7 +12,6 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- Аудио для звука смерти -->
   <audio id="glass-sound" src="glass-break.mp3" preload="auto"></audio>
 
   <div id="app" class="page">
@@ -25,6 +24,10 @@
     let card = null;
     let currentDeadStatus = false;
     let glitchInterval = null;
+    
+    // Сбрасываем пол при загрузке, чтобы он не выбирался автоматом (только для теста, если нужно)
+    // localStorage.removeItem('gender_' + token); 
+    
     let userGender = localStorage.getItem('gender_' + token);
     let roleRevealed = localStorage.getItem('revealed_' + token) === 'true';
 
@@ -207,14 +210,12 @@
         if (card.goalName === "«Неуловимый»") displayGoal = "«Неуловимая»";
       }
 
-      // МАСКИРОВКА ИКОНЫ (Роль скрываем, но цель оставляем)
+      // МАСКИРОВКА ИКОНЫ
       if (card.role === "Икона сопротивления") {
         displayRole = isFemale ? "Строительница" : "Строитель";
-        // Оставляем displayGoal как есть (он будет "«Икона сопротивления»")
       }
 
-      let displayQuote = card.quote;
-      if (card.alibiProfession === "Библиотекарь") displayQuote = "Любовь важнее закона.";
+      let displayQuote = card.quote; 
       const wordDeadFinal = isFemale ? 'дезинтегрирована' : 'дезинтегрирован';
       const wordProfession = isFemale ? 'Специальность' : 'Профессия';
 
