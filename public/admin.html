@@ -151,3 +151,134 @@
           const myVote = votesData[c.id];
           let voteText = "Не голосовал";
           
+          if (myVote !== undefined) {
+            if (myVote === null) voteText = "Воздержался";
+            else {
+              const target = allCards.find(t => t.id === myVote);
+              voteText = target ? `За ${target.randomCipher || target.cipher}` : "Неизвестно";
+            }
+          }
+
+          const displayRole = c.role === "Икона сопротивления" ? "Строитель (Икона)" : c.role;
+
+          html += `
+            <div class="admin__row" style="grid-template-columns: 1fr auto;">
+              <div>
+                <strong>${c.randomCipher || c.cipher} · ${displayRole}</strong>
+                <small>Голос: <span style="color: #69f0ae;">${voteText}</span></small>
+              </div>
+            </div>
+          `;
+        });
+        votesListEl.innerHTML = html;
+      } catch(e) {}
+    }
+
+    function renderChats() {
+      const withMsgs = chatData.filter(c => c.messages && c.messages.length > 0);
+      if (withMsgs.length === 0) {
+        chatsEl.innerHTML = '<div style="color:#7a879e; padding:20px; text-align:center;">Пока никто не задал вопросов.</div>';
+        return;
+      }
+
+      const activeElement = document.activeElement;
+      const isTyping = activeElement && activeElement.tagName === 'INPUT';
+      const typingId = isTyping ? activeElement.id : null;
+      const typingValue = isTyping ? activeElement.value : '';
+
+      chatsEl.innerHTML = withMsgs.map(c => {
+        const msgsHtml = c.messages.map(m => `
+          <div class="msg msg--${m.from}">
+            ${m.text}
+            <small>${new Date(m.ts).toLocaleTimeString('ru', {hour:'2-digit',minute:'2-digit'})}</small>
+          </div>
+        `).join('');
+
+        const inputValue = (typingId === `reply-${c.token}`) ? typingValue : '';
+        let chatDisplayRole = c.role === "Икона сопротивления" ? "Строитель" : c.role;
+
+        return `
+          <div class="chat-block">
+            <div class="chat-block__head">
+              <strong>${c.randomCipher || c.cipher} · ${chatDisplayRole}</strong> <small>(${c.alibiProfession || '—'})</small>
+            </div>
+            <div class="chat__log" style="max-height:200px; overflow-y:auto; margin-bottom:10px;">
+              ${msgsHtml}
+            </div>
+            <div class="chat__input">
+              <input type="text" id="reply-${c.token}" value="${inputValue}" placeholder="Ответить..." />
+              <button onclick="sendReply('${c.token}')">Ответить</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      if (isTyping && typingId) {
+        const el = document.getElementById(typingId);
+        if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+      }
+    }
+
+    async function sendReply(token) {
+      const inp = document.getElementById('reply-' + token);
+      const text = inp.value.trim();
+      if (!text) return;
+      await fetch(`/api/chat/${token}/reply`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      loadData();
+    }
+
+    async function saveGlobalNotes() {
+      const text = globalNotesEl.value;
+      await fetch(`/api/state/global_notes`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: text })
+      });
+      const btn = event.target;
+      const oldText = btn.innerText;
+      btn.innerText = "Сохранено!";
+      btn.style.background = "rgba(80,255,160,0.2)";
+      setTimeout(() => { btn.innerText = oldText; btn.style.background = ""; }, 1500);
+    }
+
+    async function toggleState(id, field, value) {
+      await fetch(`/api/state/${id}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: value })
+      });
+      loadData();
+    }
+
+    modeSelect.onchange = async (e) => {
+      const newMode = e.target.value;
+      await fetch('/api/set-mode', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: parseInt(newMode) })
+      });
+      loadData();
+    };
+
+    document.getElementById('next-night').onclick = async () => {
+      await fetch('/api/next-night', { method: 'POST' });
+      loadData();
+    };
+
+    document.getElementById('reset').onclick = async () => {
+      if (!confirm('Сбросить игру и раздать новые роли?')) return;
+      lastChatJSON = ''; 
+      await fetch('/api/reset', { method: 'POST' });
+      loadData();
+    };
+
+    document.getElementById('reset-votes').onclick = async () => {
+      await fetch('/api/reset-votes', { method: 'POST' });
+      renderVotes();
+    };
+
+    loadData();
+    setInterval(loadData, 3000);
+  </script>
+</body>
+</html>
