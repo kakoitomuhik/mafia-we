@@ -107,10 +107,16 @@
         const statusDot = st.online ? '<span style="color:#69f0ae; margin-right:8px;">●</span>' : '<span style="color:#55617a; margin-right:8px;">○</span>';
         const extraInfo = c.quest ? ` | Квест: ${c.quest}` : '';
         
+        // МАСКИРОВКА ИКОНЫ В АДМИНКЕ (чтобы ведущий знал правду)
+        let displayRole = c.role;
+        if (c.role === "Икона сопротивления") {
+          displayRole = "Строитель (Икона)"; 
+        }
+
         return `
           <div class="admin__row">
             <div>
-              <strong>${statusDot} ${c.cipher} · ${c.role}</strong>
+              <strong>${statusDot} ${c.randomCipher || c.cipher} · ${displayRole}</strong>
               <small>${c.alibiProfession || '—'}${extraInfo}</small>
             </div>
             <button class="btn-dead ${st.dead ? 'on' : ''}" onclick="toggleState(${c.id}, 'dead', ${!st.dead})">
@@ -146,11 +152,15 @@
         `).join('');
 
         const inputValue = (typingId === `reply-${c.token}`) ? typingValue : '';
+        
+        // Маскировка в чате (чтобы не палить Икону)
+        let chatDisplayRole = c.role;
+        if (c.role === "Икона сопротивления") chatDisplayRole = "Строитель";
 
         return `
           <div class="chat-block">
             <div class="chat-block__head">
-              <strong>${c.cipher} · ${c.role}</strong> <small>(${c.alibiProfession || '—'})</small>
+              <strong>${c.randomCipher || c.cipher} · ${chatDisplayRole}</strong> <small>(${c.alibiProfession || '—'})</small>
             </div>
             <div class="chat__log" style="max-height:200px; overflow-y:auto; margin-bottom:10px;">
               ${msgsHtml}
