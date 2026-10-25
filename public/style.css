@@ -87,18 +87,18 @@ body::before {
 .side--integral { color: #69f0ae; }
 .side--resistance { color: #ff5252; }
 
+/* УБРАЛИ СТЕКЛО С ПРОФЕССИИ */
 .card__alibi { 
   margin-top: 18px; padding: 12px 16px; 
-  background-color: rgba(120,170,255,0.1); 
-  background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  background: rgba(120,170,255,0.1); /* Чистый цвет, без картинки */
   border-left: 4px solid #7aa7ff; border-radius: 8px; font-size: 16px; 
 }
 .card__alibi strong { color: #a8c4ff; }
 
+/* УБРАЛИ СТЕКЛО С ЦЕЛИ */
 .card__goal { 
   margin-top: 18px; padding: 16px; 
-  background-color: rgba(255,200,100,0.08); 
-  background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  background: rgba(255,200,100,0.08); /* Чистый цвет, без картинки */
   border: 1px dashed rgba(255,200,100,0.4); border-radius: 12px; 
 }
 .card__goal h3 { font-size: 18px; color: #ffd47a; margin-bottom: 8px; }
@@ -128,8 +128,7 @@ body::before {
 
 .banner-dead { 
   margin-top: 18px; padding: 16px; 
-  background-color: rgba(255,60,60,0.15); 
-  background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  background: rgba(255,60,60,0.15); /* Убрал стекло */
   border: 2px solid rgba(255,60,60,0.7); 
   border-radius: 10px; 
   font-size: 16px; color: #ff9a9a; text-align: center; 
@@ -138,8 +137,7 @@ body::before {
 }
 .banner-win { 
   margin-top: 14px; padding: 14px; 
-  background-color: rgba(80,255,160,0.08); 
-  background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  background: rgba(80,255,160,0.08); /* Убрал стекло */
   border: 1px solid rgba(80,255,160,0.4); border-radius: 10px; font-size: 15px; color: #8effc0; text-align: center; position: relative; z-index: 100; 
 }
 
@@ -148,28 +146,23 @@ body::before {
 .chat h4 { font-size: 15px; color: #7aa7ff; margin-bottom: 12px; letter-spacing: 1px; text-transform: uppercase; }
 .chat__log { max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
 .chat__empty { font-size: 14px; color: #55617a; text-align: center; padding: 10px; }
+
+/* УБРАЛИ СТЕКЛО С СООБЩЕНИЙ */
 .msg { max-width: 85%; padding: 10px 14px; border-radius: 14px; font-size: 15px; line-height: 1.4; word-wrap: break-word; }
-.msg--player { 
-  align-self: flex-end; 
-  background-color: rgba(120,170,255,0.22); 
-  background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
-  border: 1px solid rgba(120,170,255,0.4); 
-}
-.msg--admin { 
-  align-self: flex-start; 
-  background-color: rgba(255,200,100,0.12); 
-  background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
-  border: 1px solid rgba(255,200,100,0.3); color: #ffd47a; 
-}
+.msg--player { align-self: flex-end; background: rgba(120,170,255,0.22); border: 1px solid rgba(120,170,255,0.4); }
+.msg--admin { align-self: flex-start; background: rgba(255,200,100,0.12); border: 1px solid rgba(255,200,100,0.3); color: #ffd47a; }
 .msg small { display: block; font-size: 11px; color: #667; margin-top: 4px; }
+
+/* УБРАЛИ СТЕКЛО С ПОЛЯ ВВОДА */
 .chat__input { display: flex; gap: 8px; }
 .chat__input input { 
   flex: 1; padding: 14px 16px; border-radius: 10px; 
-  background-color: rgba(0,0,0,0.4); 
-  background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  background: rgba(0,0,0,0.4); /* Чистый цвет */
   border: 1px solid #2a3a5a; color: #e8eef7; font-size: 16px; outline: none; 
 }
 .chat__input input:focus { border-color: #7aa7ff; }
+
+/* СТЕКЛО НА КНОПКЕ ОТПРАВИТЬ */
 .chat__input button { 
   padding: 14px 18px; border-radius: 10px; border: none; 
   background-color: #4a7fff; 
@@ -201,303 +194,91 @@ body::before {
 /* СТИЛИ ДЛЯ АДМИНКИ (БЛАГОДЕТЕЛЬ)           */
 /* ========================================= */
 
-.admin { 
-  max-width: 900px; 
-  margin: 0 auto; 
-  width: 100%; 
-  padding-bottom: 50px;
-}
-
+.admin { max-width: 900px; margin: 0 auto; width: 100%; padding-bottom: 50px; }
 .admin h1 { 
-  font-size: 28px; 
-  margin-bottom: 20px; 
-  text-align: center;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: #fff;
-  text-shadow: 0 0 15px rgba(120, 170, 255, 0.8), 0 0 5px #000;
+  font-size: 28px; margin-bottom: 20px; text-align: center; letter-spacing: 2px; text-transform: uppercase;
+  color: #fff; text-shadow: 0 0 15px rgba(120, 170, 255, 0.8), 0 0 5px #000;
 }
 
-/* Кнопки вкладок (Битое стекло) */
-.tabs { 
-  display: flex; 
-  gap: 10px; 
-  margin-bottom: 20px; 
-  justify-content: center;
-  flex-wrap: wrap; 
-}
-
+.tabs { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; flex-wrap: wrap; }
 .tab { 
-  background-color: rgba(18, 26, 44, 0.7); 
-  background-image: url('glass.png'); 
-  background-size: cover;
-  background-position: center;
-  background-blend-mode: overlay;
-  border: 1px solid rgba(120, 170, 255, 0.3); 
-  color: #a8c4ff; 
-  padding: 12px 24px; 
-  border-radius: 12px; 
-  cursor: pointer; 
-  font-size: 15px;
-  font-weight: bold;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(5px);
-  text-shadow: 1px 1px 3px black;
+  background-color: rgba(18, 26, 44, 0.7); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  border: 1px solid rgba(120, 170, 255, 0.3); color: #a8c4ff; padding: 12px 24px; border-radius: 12px; cursor: pointer; font-size: 15px; font-weight: bold;
+  transition: all 0.3s ease; backdrop-filter: blur(5px); text-shadow: 1px 1px 3px black;
 }
+.tab--active { background-color: rgba(120, 170, 255, 0.3); border-color: #7aa7ff; color: #fff; box-shadow: 0 0 20px rgba(120, 170, 255, 0.6); }
 
-.tab--active { 
-  background-color: rgba(120, 170, 255, 0.3); 
-  border-color: #7aa7ff; 
-  color: #fff; 
-  box-shadow: 0 0 20px rgba(120, 170, 255, 0.6);
-}
-
-/* Панели */
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
 .tab-panel.hidden { display: none; }
 
-/* Блок управления режимом */
 .mode-control {
-  display: flex;
-  gap: 15px;
-  align-items: center;
-  justify-content: center;
-  background-color: rgba(18, 26, 44, 0.7);
-  background-image: url('glass.png');
-  background-size: cover;
-  background-position: center;
-  background-blend-mode: overlay;
-  border: 1px solid rgba(120, 170, 255, 0.2);
-  border-radius: 16px;
-  padding: 15px 20px;
-  margin-bottom: 20px;
-  backdrop-filter: blur(10px);
+  display: flex; gap: 15px; align-items: center; justify-content: center;
+  background-color: rgba(18, 26, 44, 0.7); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  border: 1px solid rgba(120, 170, 255, 0.2); border-radius: 16px; padding: 15px 20px; margin-bottom: 20px; backdrop-filter: blur(10px);
 }
-
-.mode-control label {
-  color: #a8c4ff;
-  font-weight: bold;
-  font-size: 15px;
-  letter-spacing: 1px;
-  text-shadow: 1px 1px 2px black;
-}
-
+.mode-control label { color: #a8c4ff; font-weight: bold; font-size: 15px; letter-spacing: 1px; text-shadow: 1px 1px 2px black; }
 .mode-control select {
-  padding: 10px 15px;
-  border-radius: 10px;
-  background-color: rgba(10, 15, 30, 0.8);
-  background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
-  color: #fff;
-  border: 1px solid #4a7fff;
-  font-size: 15px;
-  outline: none;
-  cursor: pointer;
+  padding: 10px 15px; border-radius: 10px;
+  background-color: rgba(10, 15, 30, 0.8); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  color: #fff; border: 1px solid #4a7fff; font-size: 15px; outline: none; cursor: pointer;
 }
 
-.mode-control select:focus {
-  border-color: #7aa7ff;
-  box-shadow: 0 0 10px rgba(122, 167, 255, 0.4);
-}
-
-/* Карточки игроков (Стекло) */
-.admin__list { 
-  display: grid; 
-  gap: 12px; 
-}
-
+.admin__list { display: grid; gap: 12px; }
 .admin__row { 
-  display: grid; 
-  grid-template-columns: 1fr auto auto; 
-  gap: 15px; 
-  align-items: center; 
-  padding: 16px 20px; 
-  
-  background-color: rgba(10, 15, 30, 0.6); 
-  background-image: url('glass.png');
-  background-size: cover;
-  background-position: center;
-  background-blend-mode: overlay;
-  
-  border: 1px solid rgba(120, 170, 255, 0.3); 
-  border-radius: 16px; 
-  font-size: 15px;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(8px); 
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  display: grid; grid-template-columns: 1fr auto auto; gap: 15px; align-items: center; padding: 16px 20px;
+  background-color: rgba(10, 15, 30, 0.6); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  border: 1px solid rgba(120, 170, 255, 0.3); border-radius: 16px; font-size: 15px; transition: all 0.3s ease; backdrop-filter: blur(8px); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
-
-.admin__row:hover {
-  background-color: rgba(10, 15, 30, 0.8);
-  border-color: rgba(120, 170, 255, 0.8);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 40, 120, 0.5);
-}
-
+.admin__row:hover { background-color: rgba(10, 15, 30, 0.8); border-color: rgba(120, 170, 255, 0.8); transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0, 40, 120, 0.5); }
 .admin__row strong { color: #fff; font-size: 16px; text-shadow: 1px 1px 2px black; }
 .admin__row small { color: #a8c4ff; display: block; margin-top: 6px; font-size: 13px; text-shadow: 1px 1px 2px black; }
 
-/* Кнопки действий в карточках (Битое стекло) */
 .btn-dead, .btn-win { 
-  background-color: rgba(120, 170, 255, 0.1); 
-  background-image: url('glass.png');
-  background-size: cover;
-  background-position: center;
-  background-blend-mode: overlay;
-  border: 1px solid rgba(120, 170, 255, 0.4); 
-  color: #fff; 
-  padding: 10px 16px; 
-  border-radius: 10px; 
-  cursor: pointer; 
-  font-size: 14px;
-  font-weight: bold;
-  transition: all 0.3s ease;
-  min-width: 90px;
-  text-shadow: 1px 1px 3px black;
+  background-color: rgba(120, 170, 255, 0.1); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  border: 1px solid rgba(120, 170, 255, 0.4); color: #fff; padding: 10px 16px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: bold;
+  transition: all 0.3s ease; min-width: 90px; text-shadow: 1px 1px 3px black;
 }
+.btn-dead.on { background-color: rgba(255, 50, 50, 0.6); border-color: #ff5252; box-shadow: 0 0 20px rgba(255, 50, 50, 0.7); }
+.btn-win.on { background-color: rgba(50, 255, 150, 0.5); border-color: #69f0ae; box-shadow: 0 0 20px rgba(50, 255, 150, 0.7); }
 
-.btn-dead.on { 
-  background-color: rgba(255, 50, 50, 0.6); 
-  border-color: #ff5252; 
-  box-shadow: 0 0 20px rgba(255, 50, 50, 0.7);
-}
-
-.btn-win.on { 
-  background-color: rgba(50, 255, 150, 0.5); 
-  border-color: #69f0ae; 
-  box-shadow: 0 0 20px rgba(50, 255, 150, 0.7);
-}
-
-/* Кнопки управления (Битое стекло) */
-.control-buttons {
-  display: flex;
-  gap: 15px;
-  justify-content: center;
-  margin-top: 30px;
-}
-
+.control-buttons { display: flex; gap: 15px; justify-content: center; margin-top: 30px; }
 .btn-ghost { 
-  background-color: rgba(18, 26, 44, 0.8);
-  background-image: url('glass.png');
-  background-size: cover;
-  background-position: center;
-  background-blend-mode: overlay;
-  border: 1px solid rgba(120, 170, 255, 0.4); 
-  color: #fff; 
-  padding: 12px 24px; 
-  border-radius: 12px; 
-  cursor: pointer; 
-  font-size: 15px;
-  font-weight: bold;
-  transition: all 0.3s ease;
-  text-shadow: 1px 1px 3px black;
+  background-color: rgba(18, 26, 44, 0.8); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  border: 1px solid rgba(120, 170, 255, 0.4); color: #fff; padding: 12px 24px; border-radius: 12px; cursor: pointer; font-size: 15px; font-weight: bold;
+  transition: all 0.3s ease; text-shadow: 1px 1px 3px black;
 }
+.btn-ghost.danger { border-color: rgba(255, 90, 90, 0.6); color: #ff9a9a; }
 
-.btn-ghost:hover {
-  box-shadow: 0 0 20px rgba(120, 170, 255, 0.6);
-}
-
-.btn-ghost.danger {
-  border-color: rgba(255, 90, 90, 0.6);
-  color: #ff9a9a;
-}
-
-.btn-ghost.danger:hover {
-  background-color: rgba(255, 50, 50, 0.4);
-  box-shadow: 0 0 20px rgba(255, 50, 50, 0.7);
-}
-
-/* Чат (Вкладка Вопросы) */
 .chats { display: grid; gap: 15px; }
 .chat-block { 
-  background-color: rgba(18, 26, 44, 0.7); 
-  background-image: url('glass.png');
-  background-size: cover;
-  background-position: center;
-  background-blend-mode: overlay;
-  border: 1px solid rgba(120, 170, 255, 0.15); 
-  border-radius: 16px; 
-  padding: 20px; 
-  backdrop-filter: blur(10px);
+  background-color: rgba(18, 26, 44, 0.7); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  border: 1px solid rgba(120, 170, 255, 0.15); border-radius: 16px; padding: 20px; backdrop-filter: blur(10px);
 }
-
-.chat-block__head { 
-  font-size: 16px; 
-  margin-bottom: 15px; 
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(120, 170, 255, 0.1);
-}
-
+.chat-block__head { font-size: 16px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid rgba(120, 170, 255, 0.1); }
 .chat-block__head strong { color: #a8c4ff; }
 .chat-block__head small { color: #7a879e; margin-left: 8px; font-size: 13px; }
 
-.chat-block .chat__log { max-height: 250px; }
-.chat-block .chat__input { margin-top: 15px; }
-
-/* Заметки */
 .notes-block { 
-  background-color: rgba(18, 26, 44, 0.7); 
-  background-image: url('glass.png');
-  background-size: cover;
-  background-position: center;
-  background-blend-mode: overlay;
-  border: 1px solid rgba(120, 170, 255, 0.15); 
-  border-radius: 16px; 
-  padding: 20px; 
-  backdrop-filter: blur(10px);
+  background-color: rgba(18, 26, 44, 0.7); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  border: 1px solid rgba(120, 170, 255, 0.15); border-radius: 16px; padding: 20px; backdrop-filter: blur(10px);
 }
 
+/* УБРАЛИ СТЕКЛО С БОЛЬШОГО ПОЛЯ ЗАМЕТОК */
 .notes-textarea { 
-  width: 100%; 
-  min-height: 400px; 
-  background-color: rgba(10, 15, 30, 0.6); 
-  background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
-  border: 1px solid rgba(120, 170, 255, 0.2); 
-  border-radius: 12px; 
-  color: #e8eef7; 
-  padding: 20px; 
-  font-family: inherit; 
-  font-size: 16px; 
-  line-height: 1.6; 
-  resize: vertical; 
-  margin-bottom: 20px; 
+  width: 100%; min-height: 400px; 
+  background: rgba(10, 15, 30, 0.6); /* Чистый цвет */
+  border: 1px solid rgba(120, 170, 255, 0.2); border-radius: 12px; color: #e8eef7; padding: 20px; font-family: inherit; font-size: 16px; line-height: 1.6; resize: vertical; margin-bottom: 20px; 
 }
-
-.notes-textarea:focus { 
-  outline: none; 
-  border-color: #7aa7ff; 
-  box-shadow: 0 0 15px rgba(122, 167, 255, 0.2);
-}
+.notes-textarea:focus { outline: none; border-color: #7aa7ff; box-shadow: 0 0 15px rgba(122, 167, 255, 0.2); }
 
 .btn-save-notes { 
-  background-color: rgba(120, 170, 255, 0.15); 
-  background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
-  border: 1px solid rgba(120, 170, 255, 0.4); 
-  color: #a8c4ff; 
-  padding: 12px 24px; 
-  border-radius: 12px; 
-  cursor: pointer; 
-  font-size: 16px; 
-  font-weight: bold; 
-  transition: 0.3s; 
+  background-color: rgba(120, 170, 255, 0.15); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
+  border: 1px solid rgba(120, 170, 255, 0.4); color: #a8c4ff; padding: 12px 24px; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; 
 }
 
-.btn-save-notes:hover { 
-  background-color: rgba(120, 170, 255, 0.3); 
-  box-shadow: 0 0 15px rgba(120, 170, 255, 0.4);
-}
-
-/* Адаптация для мобильных (Кнопка отправки) */
 @media (max-width: 600px) {
-  .chat__input {
-    flex-direction: column; 
-    gap: 10px;
-  }
-  .chat__input input {
-    width: 100%;
-  }
-  .chat__input button {
-    width: 100%; 
-    padding: 14px;
-  }
+  .chat__input { flex-direction: column; gap: 10px; }
+  .chat__input input { width: 100%; }
+  .chat__input button { width: 100%; padding: 14px; }
 }
