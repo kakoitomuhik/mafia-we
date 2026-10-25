@@ -16,7 +16,6 @@ let currentNight = 1;
 let currentMode = 10; 
 let gameCards = null;
 
-// 12 рандомных профессий для алиби
 const PROFESSIONS = [
   "Инженер", "Архитектор", "Учитель", "Бухгалтер", 
   "Программист", "Электрик", "Сварщик", "Агроном", 
@@ -25,7 +24,7 @@ const PROFESSIONS = [
 
 const CIPHER_LETTERS = ["А", "Б", "В", "Г", "Д", "Е", "Ж", "З", "И", "К", "Л", "М", "Н", "П", "Р", "С", "Т", "Ф"];
 
-// 10 пакетов (только квесты, картинки и цитаты берутся из cards.json)
+// Пакеты квестов (без картинок и цитат, они берутся из cards.json)
 const PACKAGES = [
   { quest: "Расскажи историю, которую оценят 3 человека." },
   { quest: "Добейся, чтобы против тебя проголосовало 0 человек." },
@@ -63,16 +62,16 @@ function getCardsWithProfessions() {
   const shuffledQuests = shuffle([...PACKAGES]);
 
   selectedCards.forEach((card, index) => {
-    // 1. Выдаем случайную профессию
+    // 1. Профессия
     card.alibiProfession = shuffledProfs[index % shuffledProfs.length];
     
-    // 2. Выдаем случайный квест (только Строителям и Иконе)
+    // 2. Квест (только Строителям и Иконе)
     if (card.role === "Строитель" || card.role === "Икона сопротивления") {
       card.quest = shuffledQuests[index % shuffledQuests.length].quest;
     }
   });
 
-  // 3. Генерируем случайные шифры (номера)
+  // 3. Случайные шифры
   const shuffledLetters = shuffle([...CIPHER_LETTERS]);
   selectedCards.forEach((card, index) => {
     const letter = shuffledLetters[index % shuffledLetters.length];
@@ -80,7 +79,7 @@ function getCardsWithProfessions() {
     card.randomCipher = `${letter}-${number}`;
   });
 
-  // 4. Выбираем Мстителя (среди Строителей)
+  // 4. Мститель
   const candidates = selectedCards.filter(c => c.role === "Строитель");
   if (candidates.length > 0) {
     const chosenOne = candidates[Math.floor(Math.random() * candidates.length)];
