@@ -1,10 +1,15 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
   font-family: 'Montserrat', -apple-system, "Segoe UI", Roboto, sans-serif;
-  background-color: #06080f; 
+  
+  /* ДВОЙНОЙ ФОН ДЛЯ АДМИНКИ: Синяя обложка + красный фильтр сверху */
+  background-image: 
+    linear-gradient(rgba(60, 10, 15, 0.75), rgba(60, 10, 15, 0.75)), 
+    url('bg-alive.png'); 
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
+  
   color: #e8eef7; 
   min-height: 100vh; 
   padding: 16px;
@@ -153,11 +158,11 @@ body {
   text-align: center;
   letter-spacing: 2px;
   text-transform: uppercase;
-  color: #a8c4ff;
-  text-shadow: 0 0 10px rgba(120, 170, 255, 0.5);
+  color: #fff;
+  text-shadow: 0 0 15px rgba(255, 50, 50, 0.8), 0 0 5px rgba(120, 170, 255, 0.5);
 }
 
-/* Кнопки вкладок */
+/* Кнопки вкладок (Битое стекло) */
 .tabs { 
   display: flex; 
   gap: 10px; 
@@ -167,28 +172,26 @@ body {
 }
 
 .tab { 
-  background: rgba(18, 26, 44, 0.6); 
-  border: 1px solid rgba(120, 170, 255, 0.2); 
-  color: #889; 
+  background-color: rgba(18, 26, 44, 0.7); 
+  background-image: url('glass.png'); 
+  background-size: cover;
+  background-position: center;
+  border: 1px solid rgba(120, 170, 255, 0.3); 
+  color: #a8c4ff; 
   padding: 12px 24px; 
   border-radius: 12px; 
   cursor: pointer; 
   font-size: 15px;
-  font-weight: 500;
+  font-weight: bold;
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-}
-
-.tab:hover {
-  background: rgba(120, 170, 255, 0.1);
-  color: #e8eef7;
+  backdrop-filter: blur(5px);
 }
 
 .tab--active { 
-  background: rgba(120, 170, 255, 0.2); 
+  background-color: rgba(120, 170, 255, 0.3); 
   border-color: #7aa7ff; 
   color: #fff; 
-  box-shadow: 0 0 15px rgba(120, 170, 255, 0.3);
+  box-shadow: 0 0 20px rgba(120, 170, 255, 0.6);
 }
 
 /* Панели */
@@ -202,7 +205,7 @@ body {
   gap: 15px;
   align-items: center;
   justify-content: center;
-  background: rgba(18, 26, 44, 0.6);
+  background: rgba(18, 26, 44, 0.7);
   border: 1px solid rgba(120, 170, 255, 0.2);
   border-radius: 16px;
   padding: 15px 20px;
@@ -233,7 +236,7 @@ body {
   box-shadow: 0 0 10px rgba(122, 167, 255, 0.4);
 }
 
-/* Карточки игроков */
+/* Карточки игроков (Полупрозрачные) */
 .admin__list { 
   display: grid; 
   gap: 12px; 
@@ -245,50 +248,32 @@ body {
   gap: 15px; 
   align-items: center; 
   padding: 16px 20px; 
-  background: rgba(18, 26, 44, 0.7); 
-  border: 1px solid rgba(120, 170, 255, 0.15); 
+  background: rgba(10, 15, 30, 0.6); 
+  border: 1px solid rgba(120, 170, 255, 0.2); 
   border-radius: 16px; 
   font-size: 15px;
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(8px); 
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 .admin__row:hover {
-  border-color: rgba(120, 170, 255, 0.5);
-  box-shadow: 0 8px 25px rgba(0, 40, 120, 0.3);
+  background: rgba(10, 15, 30, 0.8);
+  border-color: rgba(120, 170, 255, 0.6);
   transform: translateY(-2px);
 }
 
-.admin__row strong {
-  color: #e8eef7;
-  font-size: 16px;
-}
+.admin__row strong { color: #fff; font-size: 16px; text-shadow: 1px 1px 2px black; }
+.admin__row small { color: #a8c4ff; display: block; margin-top: 6px; font-size: 13px; }
 
-.admin__row small { 
-  color: #7a879e; 
-  display: block; 
-  margin-top: 6px; 
-  font-size: 13px; 
-}
-
-/* Статусы (Онлайн/Офлайн) */
-.status-dot {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  margin-right: 10px;
-  box-shadow: 0 0 10px currentColor;
-}
-.status-online { color: #69f0ae; background: #69f0ae; }
-.status-offline { color: #55617a; background: #55617a; }
-
-/* Кнопки действий в карточках */
+/* Кнопки действий в карточках (Битое стекло) */
 .btn-dead, .btn-win { 
-  background: rgba(120, 170, 255, 0.1); 
-  border: 1px solid rgba(120, 170, 255, 0.3); 
-  color: #a8c4ff; 
+  background-color: rgba(120, 170, 255, 0.1); 
+  background-image: url('glass.png');
+  background-size: cover;
+  background-position: center;
+  border: 1px solid rgba(120, 170, 255, 0.4); 
+  color: #fff; 
   padding: 10px 16px; 
   border-radius: 10px; 
   cursor: pointer; 
@@ -296,27 +281,22 @@ body {
   font-weight: bold;
   transition: all 0.3s ease;
   min-width: 90px;
-}
-
-.btn-dead:hover, .btn-win:hover {
-  background: rgba(120, 170, 255, 0.2);
+  text-shadow: 1px 1px 3px black;
 }
 
 .btn-dead.on { 
-  background: rgba(255, 90, 90, 0.2); 
-  border-color: rgba(255, 90, 90, 0.6); 
-  color: #ff9a9a; 
-  box-shadow: 0 0 15px rgba(255, 90, 90, 0.3);
+  background-color: rgba(255, 50, 50, 0.6); 
+  border-color: #ff5252; 
+  box-shadow: 0 0 20px rgba(255, 50, 50, 0.7);
 }
 
 .btn-win.on { 
-  background: rgba(80, 255, 160, 0.15); 
-  border-color: rgba(80, 255, 160, 0.5); 
-  color: #8effc0; 
-  box-shadow: 0 0 15px rgba(80, 255, 160, 0.3);
+  background-color: rgba(50, 255, 150, 0.5); 
+  border-color: #69f0ae; 
+  box-shadow: 0 0 20px rgba(50, 255, 150, 0.7);
 }
 
-/* Кнопки управления (Следующая ночь, Сброс) */
+/* Кнопки управления (Битое стекло) */
 .control-buttons {
   display: flex;
   gap: 15px;
@@ -325,32 +305,33 @@ body {
 }
 
 .btn-ghost { 
-  background: rgba(120, 170, 255, 0.05);
-  border: 1px solid rgba(120, 170, 255, 0.3); 
-  color: #a8c4ff; 
+  background-color: rgba(18, 26, 44, 0.8);
+  background-image: url('glass.png');
+  background-size: cover;
+  background-position: center;
+  border: 1px solid rgba(120, 170, 255, 0.4); 
+  color: #fff; 
   padding: 12px 24px; 
   border-radius: 12px; 
   cursor: pointer; 
   font-size: 15px;
   font-weight: bold;
   transition: all 0.3s ease;
+  text-shadow: 1px 1px 3px black;
 }
 
 .btn-ghost:hover {
-  background: rgba(120, 170, 255, 0.15);
-  border-color: #7aa7ff;
-  box-shadow: 0 0 15px rgba(120, 170, 255, 0.3);
+  box-shadow: 0 0 20px rgba(120, 170, 255, 0.6);
 }
 
 .btn-ghost.danger {
-  border-color: rgba(255, 90, 90, 0.4);
+  border-color: rgba(255, 90, 90, 0.6);
   color: #ff9a9a;
 }
 
 .btn-ghost.danger:hover {
-  background: rgba(255, 90, 90, 0.15);
-  border-color: #ff5252;
-  box-shadow: 0 0 15px rgba(255, 90, 90, 0.3);
+  background-color: rgba(255, 50, 50, 0.4);
+  box-shadow: 0 0 20px rgba(255, 50, 50, 0.7);
 }
 
 /* Чат (Вкладка Вопросы) */
