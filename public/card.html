@@ -77,12 +77,8 @@
     }
 
     function renderGenderSelect() {
-      document.body.style.backgroundImage = "url('bg-alive.png')"; 
-      document.body.style.backgroundSize = "cover";
-      document.body.style.backgroundPosition = "center";
-
       app.innerHTML = `
-        <div class="card" style="text-align: center;">
+        <div class="card" style="text-align: center; background-image: url('bg-alive.png');">
           <div class="card-inner">
             <div class="card__cipher">Идентификация нумера</div>
             <h2 style="margin: 20px 0; color: #a8c4ff;">Укажи свой пол</h2>
@@ -96,12 +92,8 @@
     }
 
     function renderRevealScreen() {
-      document.body.style.backgroundImage = "url('bg-alive.png')"; 
-      document.body.style.backgroundSize = "cover";
-      document.body.style.backgroundPosition = "center";
-
       app.innerHTML = `
-        <div class="card" style="text-align: center;">
+        <div class="card" style="text-align: center; background-image: url('bg-alive.png');">
           <div class="card-inner">
             <div class="card__cipher">Нумер ${card.randomCipher || card.cipher}</div>
             <h2 style="margin: 30px 0 10px 0; color: #a8c4ff;">Твоя роль готова</h2>
@@ -169,6 +161,9 @@
       const bgImage = st.dead ? 'bg-dead.png' : 'bg-alive.png';
       const isFemale = userGender === 'female';
 
+      // Передаем обложку в CSS
+      document.documentElement.style.setProperty('--bg-url', `url('${bgImage}')`);
+
       const DEATH_QUOTES = [
         "«Единственное средство избавить человека от преступлений — избавить его от свободы».",
         "«Вы боитесь, что я не смогу умереть. Но я уже растворился в Едином Государстве».",
@@ -193,18 +188,17 @@
       let displayGoal = card.goalName;
 
       if (isFemale) {
-        // Склоняем роль
         if (card.role === "Строитель") displayRole = "Строительница";
         if (card.role === "Диссидент") displayRole = "Диссидентка";
         if (card.role === "Хранитель") displayRole = "Хранительница";
-        
-        // Склоняем профессию
         if (card.alibiProfession === "Учитель") displayAlibi = "Учительница";
         if (card.alibiProfession === "Сварщик") displayAlibi = "Сварщица";
         if (card.alibiProfession === "Программист") displayAlibi = "Программистка";
-        
-        // Склоняем цель
-        if (card.goalNameF) displayGoal = card.goalNameF;
+        if (card.goalName === "«Поэт»") displayGoal = "«Поэтесса»";
+        if (card.goalName === "«Пропагандист»") displayGoal = "«Пропагандистка»";
+        if (card.goalName === "«Порядочный гражданин»") displayGoal = "«Порядочная гражданка»";
+        if (card.goalName === "«Пацифист»") displayGoal = "«Пацифистка»";
+        if (card.goalName === "«Неуловимый»") displayGoal = "«Неуловимая»";
       }
 
       if (card.role === "Икона сопротивления") {
@@ -234,7 +228,7 @@
       }
 
       app.innerHTML = `
-        <div class="card ${st.dead ? 'card--dead' : ''}" style="background-image: url('${bgImage}'); background-size: cover; background-position: center;">
+        <div class="card ${st.dead ? 'card--dead' : ''}">
           <div class="card-inner">
             ${!st.dead ? `
               <div class="card__cipher">Нумер ${card.randomCipher || card.cipher}</div>
