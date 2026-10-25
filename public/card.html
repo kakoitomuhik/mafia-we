@@ -193,11 +193,7 @@
         if (card.alibiProfession === "Учитель") displayAlibi = "Учительница";
         if (card.alibiProfession === "Сварщик") displayAlibi = "Сварщица";
         if (card.alibiProfession === "Программист") displayAlibi = "Программистка";
-        if (card.goalName === "«Поэт»") displayGoal = "«Поэтесса»";
-        if (card.goalName === "«Пропагандист»") displayGoal = "«Пропагандистка»";
-        if (card.goalName === "«Порядочный гражданин»") displayGoal = "«Порядочная гражданка»";
-        if (card.goalName === "«Пацифист»") displayGoal = "«Пацифистка»";
-        if (card.goalName === "«Неуловимый»") displayGoal = "«Неуловимая»";
+        if (card.goalNameF) displayGoal = card.goalNameF;
       }
 
       if (card.role === "Икона сопротивления") {
@@ -242,6 +238,13 @@
 
               <div class="card__legend">${displayLegend}</div>
               <div class="card__quote">«${displayQuote}»</div>
+
+              <!-- БЛОК ГОЛОСОВАНИЯ -->
+              <div class="card__vote" id="vote-box" style="display: none; margin-top: 15px; padding: 15px; background: rgba(30, 50, 80, 0.95); border: 1px solid #4a7fff; border-radius: 12px;">
+                <h3 style="color: #7aa7ff; margin-bottom: 10px; font-size: 16px; text-align: center;">Голосование</h3>
+                <div id="vote-targets" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                <button onclick="castVote(null)" style="margin-top: 10px; width: 100%; padding: 10px; background: #333; border: none; border-radius: 8px; color: #fff; cursor: pointer; font-size: 14px;">Воздержаться</button>
+              </div>
             ` : `
               <div class="card__portrait dead-portrait">
                 <img id="portrait-img" class="main-img" src="" alt="Портрет" style="width:100%; height:100%; object-fit:cover; border-radius: 16px;">
@@ -285,6 +288,33 @@
           const genderSuffix = isFemale ? '_f' : '_m';
           imgEl.src = `/${card.image}${genderSuffix}.png`;
         }
+      }
+
+      // ЛОГИКА ГОЛОСОВАНИЯ
+      const voteBox = document.getElementById('vote-box');
+      const voteTargets = document.getElementById('vote-targets');
+      
+      if (voteBox && !st.dead) {
+        voteBox.style.display = 'block';
+        
+        fetch('/api/cards').then(r => r.json()).then(allCards => {
+          const liveCards = allCards.filter(c => c.id !== card.id && !(allStates[c.id] || {}).dead);
+          
+          fetch('/api/votes').then(r => r.json()).then(currentVotes => {
+            const myVote = currentVotes[card.id];
+            
+            let html = '';
+            liveCards.forEach(p => {
+              const isSelected = (myVote === p.id);
+              html += `
+                <button onclick="castVote(${p.id})" style="padding: 10px; background: ${isSelected ? 'rgba(80,255,160,0.5)' : 'rgba(120,170,255,0.2)'}; border: 1px solid ${isSelected ? '#69f0ae' : '#7aa7ff'}; border-radius: 8px; color: #fff; cursor: pointer; font-size: 14px; text-align: left;">
+                  ${p.randomCipher || p.cipher} ${isSelected ? '✓' : ''}
+                </button>
+              `;
+            });
+            voteTargets.innerHTML = html;
+          });
+        });
       }
 
       if (st.dead && card.isAvenger && !st.avengerUsed) {
@@ -353,6 +383,15 @@
       }
       
       loadChat();
+    }
+
+    async function castVote(targetId) {
+      if (!confirm(targetId ? 'Подтвердить ваш голос?' : 'Вы уверены, что хотите воздержаться?')) return;
+      await fetch('/api/vote', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voterId: card.id, targetId: targetId })
+      });
+      await renderCard();
     }
 
     async function loadChat() {
