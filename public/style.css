@@ -16,7 +16,10 @@ body {
 }
 .page { display: flex; justify-content: center; align-items: flex-start; }
 
-/* === Карта === */
+/* ========================================= */
+/* СТИЛИ ДЛЯ КАРТ ИГРОКОВ                    */
+/* ========================================= */
+
 .card {
   width: 100%; max-width: 420px;
   border: 1px solid rgba(120, 170, 255, 0.25);
@@ -70,15 +73,11 @@ body {
 .card__legend { margin-top: 18px; font-size: 15px; line-height: 1.6; color: #9aa8c0; font-style: italic; }
 .card__quote { margin-top: 16px; font-size: 16px; color: #c4b8ff; text-align: center; padding: 12px; border-top: 1px solid #2a3a5a; font-weight: 500; }
 
-/* ========================================= */
-/* ЭФФЕКТ СМЕРТИ                             */
-/* ========================================= */
-
+/* Эффект смерти */
 .card--dead {
   border-color: #ff3333 !important; 
   box-shadow: 0 0 30px rgba(255, 0, 0, 0.4) !important; 
 }
-
 .dead-portrait { position: relative; }
 .dead-portrait::before {
   content: "";
@@ -104,7 +103,7 @@ body {
 }
 .banner-win { margin-top: 14px; padding: 14px; background: rgba(80,255,160,0.08); border: 1px solid rgba(80,255,160,0.4); border-radius: 10px; font-size: 15px; color: #8effc0; text-align: center; position: relative; z-index: 100; }
 
-/* === Чат === */
+/* Чат на карте */
 .chat { margin-top: 20px; padding-top: 18px; border-top: 1px solid rgba(120,170,255,0.2); position: relative; z-index: 100; }
 .chat h4 { font-size: 15px; color: #7aa7ff; margin-bottom: 12px; letter-spacing: 1px; text-transform: uppercase; }
 .chat__log { max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
@@ -119,7 +118,7 @@ body {
 .chat__input button { padding: 14px 18px; border-radius: 10px; border: none; background: #4a7fff; color: white; font-size: 16px; cursor: pointer; font-weight: bold; }
 .chat__input button:hover { background: #5a8fff; }
 
-/* === Кнопки пола === */
+/* Кнопки пола */
 .btn-gender {
   background: rgba(120,170,255,0.15);
   border: 1px solid rgba(120,170,255,0.4);
@@ -137,38 +136,294 @@ body {
   transform: scale(1.05);
 }
 
-/* === Админка === */
-.admin { max-width: 900px; margin: 0 auto; width: 100%; }
-.admin h1 { font-size: 24px; margin-bottom: 16px; }
-.tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
-.tab { background: none; border: 1px solid #2a3a5a; color: #889; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; }
-.tab--active { background: rgba(120,170,255,0.15); border-color: #7aa7ff; color: #a8c4ff; }
+/* ========================================= */
+/* СТИЛИ ДЛЯ АДМИНКИ (БЛАГОДЕТЕЛЬ)           */
+/* ========================================= */
+
+.admin { 
+  max-width: 900px; 
+  margin: 0 auto; 
+  width: 100%; 
+  padding-bottom: 50px;
+}
+
+.admin h1 { 
+  font-size: 28px; 
+  margin-bottom: 20px; 
+  text-align: center;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #a8c4ff;
+  text-shadow: 0 0 10px rgba(120, 170, 255, 0.5);
+}
+
+/* Кнопки вкладок */
+.tabs { 
+  display: flex; 
+  gap: 10px; 
+  margin-bottom: 20px; 
+  justify-content: center;
+  flex-wrap: wrap; 
+}
+
+.tab { 
+  background: rgba(18, 26, 44, 0.6); 
+  border: 1px solid rgba(120, 170, 255, 0.2); 
+  color: #889; 
+  padding: 12px 24px; 
+  border-radius: 12px; 
+  cursor: pointer; 
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.tab:hover {
+  background: rgba(120, 170, 255, 0.1);
+  color: #e8eef7;
+}
+
+.tab--active { 
+  background: rgba(120, 170, 255, 0.2); 
+  border-color: #7aa7ff; 
+  color: #fff; 
+  box-shadow: 0 0 15px rgba(120, 170, 255, 0.3);
+}
+
+/* Панели */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
 .tab-panel.hidden { display: none; }
 
-.admin__list { display: grid; gap: 10px; }
-.admin__row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 14px 18px; background: rgba(18,26,44,0.85); border: 1px solid rgba(120,170,255,0.2); border-radius: 12px; font-size: 15px; }
-.admin__row small { color: #7a879e; display: block; margin-top: 4px; font-size: 13px; }
-.btn-dead, .btn-win { background: rgba(120,170,255,0.15); border: 1px solid rgba(120,170,255,0.4); color: #a8c4ff; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; }
-.btn-dead.on { background: rgba(255,90,90,0.25); border-color: rgba(255,90,90,0.6); color: #ff9a9a; }
-.btn-win.on { background: rgba(80,255,160,0.2); border-color: rgba(80,255,160,0.5); color: #8effc0; }
-.btn-ghost { margin-top: 16px; background: none; border: 1px solid #445; color: #667; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+/* Блок управления режимом */
+.mode-control {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  justify-content: center;
+  background: rgba(18, 26, 44, 0.6);
+  border: 1px solid rgba(120, 170, 255, 0.2);
+  border-radius: 16px;
+  padding: 15px 20px;
+  margin-bottom: 20px;
+  backdrop-filter: blur(10px);
+}
 
-.notes-block { background: rgba(18,26,44,0.85); border: 1px solid rgba(120,170,255,0.2); border-radius: 12px; padding: 20px; margin-bottom: 10px; }
-.notes-textarea { width: 100%; min-height: 400px; background: rgba(0, 0, 0, 0.4); border: 1px solid #2a3a5a; border-radius: 8px; color: #e8eef7; padding: 15px; font-family: inherit; font-size: 16px; line-height: 1.6; resize: vertical; margin-bottom: 15px; }
-.notes-textarea:focus { outline: none; border-color: #7aa7ff; background: rgba(0, 0, 0, 0.6); }
-.notes-textarea::placeholder { color: #55617a; }
-.btn-save-notes { background: rgba(120,170,255,0.15); border: 1px solid rgba(120,170,255,0.4); color: #a8c4ff; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.2s; }
-.btn-save-notes:hover { background: rgba(120,170,255,0.3); }
+.mode-control label {
+  color: #a8c4ff;
+  font-weight: bold;
+  font-size: 15px;
+  letter-spacing: 1px;
+}
 
-.chats { display: grid; gap: 12px; }
-.chat-block { background: rgba(18,26,44,0.85); border: 1px solid rgba(120,170,255,0.2); border-radius: 12px; padding: 16px; }
-.chat-block__head { font-size: 15px; margin-bottom: 12px; }
+.mode-control select {
+  padding: 10px 15px;
+  border-radius: 10px;
+  background: rgba(10, 15, 30, 0.8);
+  color: #fff;
+  border: 1px solid #4a7fff;
+  font-size: 15px;
+  outline: none;
+  cursor: pointer;
+}
+
+.mode-control select:focus {
+  border-color: #7aa7ff;
+  box-shadow: 0 0 10px rgba(122, 167, 255, 0.4);
+}
+
+/* Карточки игроков */
+.admin__list { 
+  display: grid; 
+  gap: 12px; 
+}
+
+.admin__row { 
+  display: grid; 
+  grid-template-columns: 1fr auto auto; 
+  gap: 15px; 
+  align-items: center; 
+  padding: 16px 20px; 
+  background: rgba(18, 26, 44, 0.7); 
+  border: 1px solid rgba(120, 170, 255, 0.15); 
+  border-radius: 16px; 
+  font-size: 15px;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.admin__row:hover {
+  border-color: rgba(120, 170, 255, 0.5);
+  box-shadow: 0 8px 25px rgba(0, 40, 120, 0.3);
+  transform: translateY(-2px);
+}
+
+.admin__row strong {
+  color: #e8eef7;
+  font-size: 16px;
+}
+
+.admin__row small { 
+  color: #7a879e; 
+  display: block; 
+  margin-top: 6px; 
+  font-size: 13px; 
+}
+
+/* Статусы (Онлайн/Офлайн) */
+.status-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 10px;
+  box-shadow: 0 0 10px currentColor;
+}
+.status-online { color: #69f0ae; background: #69f0ae; }
+.status-offline { color: #55617a; background: #55617a; }
+
+/* Кнопки действий в карточках */
+.btn-dead, .btn-win { 
+  background: rgba(120, 170, 255, 0.1); 
+  border: 1px solid rgba(120, 170, 255, 0.3); 
+  color: #a8c4ff; 
+  padding: 10px 16px; 
+  border-radius: 10px; 
+  cursor: pointer; 
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  min-width: 90px;
+}
+
+.btn-dead:hover, .btn-win:hover {
+  background: rgba(120, 170, 255, 0.2);
+}
+
+.btn-dead.on { 
+  background: rgba(255, 90, 90, 0.2); 
+  border-color: rgba(255, 90, 90, 0.6); 
+  color: #ff9a9a; 
+  box-shadow: 0 0 15px rgba(255, 90, 90, 0.3);
+}
+
+.btn-win.on { 
+  background: rgba(80, 255, 160, 0.15); 
+  border-color: rgba(80, 255, 160, 0.5); 
+  color: #8effc0; 
+  box-shadow: 0 0 15px rgba(80, 255, 160, 0.3);
+}
+
+/* Кнопки управления (Следующая ночь, Сброс) */
+.control-buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+.btn-ghost { 
+  background: rgba(120, 170, 255, 0.05);
+  border: 1px solid rgba(120, 170, 255, 0.3); 
+  color: #a8c4ff; 
+  padding: 12px 24px; 
+  border-radius: 12px; 
+  cursor: pointer; 
+  font-size: 15px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.btn-ghost:hover {
+  background: rgba(120, 170, 255, 0.15);
+  border-color: #7aa7ff;
+  box-shadow: 0 0 15px rgba(120, 170, 255, 0.3);
+}
+
+.btn-ghost.danger {
+  border-color: rgba(255, 90, 90, 0.4);
+  color: #ff9a9a;
+}
+
+.btn-ghost.danger:hover {
+  background: rgba(255, 90, 90, 0.15);
+  border-color: #ff5252;
+  box-shadow: 0 0 15px rgba(255, 90, 90, 0.3);
+}
+
+/* Чат (Вкладка Вопросы) */
+.chats { display: grid; gap: 15px; }
+.chat-block { 
+  background: rgba(18, 26, 44, 0.7); 
+  border: 1px solid rgba(120, 170, 255, 0.15); 
+  border-radius: 16px; 
+  padding: 20px; 
+  backdrop-filter: blur(10px);
+}
+
+.chat-block__head { 
+  font-size: 16px; 
+  margin-bottom: 15px; 
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(120, 170, 255, 0.1);
+}
+
 .chat-block__head strong { color: #a8c4ff; }
-.chat-block__head small { color: #7a879e; margin-left: 6px; font-size: 13px; }
-.chat-block .chat__log { max-height: 180px; }
-.chat-block .chat__input { margin-top: 10px; }
+.chat-block__head small { color: #7a879e; margin-left: 8px; font-size: 13px; }
 
-/* ИСПРАВЛЕНИЕ ДЛЯ ТЕЛЕФОНОВ (Кнопка не съезжает) */
+.chat-block .chat__log { max-height: 250px; }
+.chat-block .chat__input { margin-top: 15px; }
+
+/* Заметки */
+.notes-block { 
+  background: rgba(18, 26, 44, 0.7); 
+  border: 1px solid rgba(120, 170, 255, 0.15); 
+  border-radius: 16px; 
+  padding: 20px; 
+  backdrop-filter: blur(10px);
+}
+
+.notes-textarea { 
+  width: 100%; 
+  min-height: 400px; 
+  background: rgba(10, 15, 30, 0.6); 
+  border: 1px solid rgba(120, 170, 255, 0.2); 
+  border-radius: 12px; 
+  color: #e8eef7; 
+  padding: 20px; 
+  font-family: inherit; 
+  font-size: 16px; 
+  line-height: 1.6; 
+  resize: vertical; 
+  margin-bottom: 20px; 
+}
+
+.notes-textarea:focus { 
+  outline: none; 
+  border-color: #7aa7ff; 
+  box-shadow: 0 0 15px rgba(122, 167, 255, 0.2);
+}
+
+.btn-save-notes { 
+  background: rgba(120, 170, 255, 0.15); 
+  border: 1px solid rgba(120, 170, 255, 0.4); 
+  color: #a8c4ff; 
+  padding: 12px 24px; 
+  border-radius: 12px; 
+  cursor: pointer; 
+  font-size: 16px; 
+  font-weight: bold; 
+  transition: 0.3s; 
+}
+
+.btn-save-notes:hover { 
+  background: rgba(120, 170, 255, 0.3); 
+  box-shadow: 0 0 15px rgba(120, 170, 255, 0.4);
+}
+
+/* Адаптация для мобильных (Кнопка отправки) */
 @media (max-width: 600px) {
   .chat__input {
     flex-direction: column; 
