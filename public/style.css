@@ -14,21 +14,6 @@ body {
   overflow-x: hidden; 
   margin: 0;
   -webkit-tap-highlight-color: transparent;
-  
-  position: relative;
-}
-
-/* СЛОЙ СО СТЕКЛОМ НА ФОНЕ */
-body::before {
-  content: "";
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-image: url('glass.png');
-  background-size: cover;
-  background-position: center;
-  opacity: 0.15; 
-  z-index: -1; 
-  pointer-events: none; 
 }
 
 .page { display: flex; justify-content: center; align-items: flex-start; }
@@ -41,19 +26,18 @@ body::before {
   width: 100%; max-width: 420px;
   border: 1px solid rgba(120, 170, 255, 0.25);
   border-radius: 20px; 
-  backdrop-filter: blur(12px);
   box-shadow: 0 20px 60px rgba(0, 40, 120, 0.4);
   animation: floatIn 0.6s ease;
   position: relative;
   overflow: hidden;
   
-  /* Чистый фон для карты, чтобы обложки не вылезали */
+  /* Фон карты (обложка будет ставиться через inline-стиль в HTML) */
   background: rgba(10, 15, 30, 0.85);
 }
 @keyframes floatIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
 
 .card-inner {
-  background: transparent; /* Прозрачный фон, чтобы обложка была видна */
+  background: transparent; 
   padding: 24px;
   border-radius: 19px; 
   height: 100%;
@@ -77,30 +61,31 @@ body::before {
 }
 @keyframes pulse { 0%,100% { opacity: .35; } 50% { opacity: .85; } }
 
-.card__role { font-size: 26px; font-weight: 700; margin-top: 18px; text-align: center; }
+.card__role { font-size: 26px; font-weight: 700; margin-top: 18px; text-align: center; color: #fff; }
 
 .card__side { text-align: center; font-size: 15px; letter-spacing: 3px; font-weight: bold; margin-top: 6px; text-transform: uppercase; }
 .side--integral { color: #69f0ae; }
 .side--resistance { color: #ff5252; }
 
-/* ПРОФЕССИЯ (без стекла) */
+/* ПРОФЕССИЯ */
 .card__alibi { 
   margin-top: 18px; padding: 12px 16px; 
   background: rgba(120,170,255,0.1); 
+  border: 1px solid rgba(120,170,255,0.3);
   border-left: 4px solid #7aa7ff; border-radius: 8px; font-size: 16px; 
 }
 .card__alibi strong { color: #a8c4ff; }
 
-/* ЦЕЛЬ (без стекла) */
+/* ЦЕЛЬ */
 .card__goal { 
   margin-top: 18px; padding: 16px; 
   background: rgba(255,200,100,0.08); 
   border: 1px dashed rgba(255,200,100,0.4); border-radius: 12px; 
 }
 .card__goal h3 { font-size: 18px; color: #ffd47a; margin-bottom: 8px; }
-.card__goal p { font-size: 15px; line-height: 1.5; }
+.card__goal p { font-size: 15px; line-height: 1.5; color: #e8eef7; }
 
-.card__legend { margin-top: 18px; font-size: 15px; line-height: 1.6; color: #9aa8c0; font-style: italic; }
+.card__legend { margin-top: 18px; font-size: 15px; line-height: 1.6; color: #c4b8ff; font-style: italic; }
 .card__quote { margin-top: 16px; font-size: 16px; color: #c4b8ff; text-align: center; padding: 12px; border-top: 1px solid #2a3a5a; font-weight: 500; }
 
 /* Эффект смерти */
@@ -143,13 +128,11 @@ body::before {
 .chat__log { max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
 .chat__empty { font-size: 14px; color: #55617a; text-align: center; padding: 10px; }
 
-/* СООБЩЕНИЯ (без стекла) */
 .msg { max-width: 85%; padding: 10px 14px; border-radius: 14px; font-size: 15px; line-height: 1.4; word-wrap: break-word; }
 .msg--player { align-self: flex-end; background: rgba(120,170,255,0.22); border: 1px solid rgba(120,170,255,0.4); }
 .msg--admin { align-self: flex-start; background: rgba(255,200,100,0.12); border: 1px solid rgba(255,200,100,0.3); color: #ffd47a; }
-.msg small { display: block; font-size: 11px; color: #667; margin-top: 4px; }
+.msg small { display: block; font-size: 11px; color: #a8c4ff; margin-top: 4px; }
 
-/* ПОЛЕ ВВОДА (без стекла) */
 .chat__input { display: flex; gap: 8px; }
 .chat__input input { 
   flex: 1; padding: 14px 16px; border-radius: 10px; 
@@ -158,7 +141,6 @@ body::before {
 }
 .chat__input input:focus { border-color: #7aa7ff; }
 
-/* КНОПКА ОТПРАВИТЬ (стекло) */
 .chat__input button { 
   padding: 14px 18px; border-radius: 10px; border: none; 
   background-color: #4a7fff; 
@@ -200,7 +182,7 @@ body::before {
 .tab { 
   background-color: rgba(18, 26, 44, 0.7); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
   border: 1px solid rgba(120, 170, 255, 0.3); color: #a8c4ff; padding: 12px 24px; border-radius: 12px; cursor: pointer; font-size: 15px; font-weight: bold;
-  transition: all 0.3s ease; backdrop-filter: blur(5px); text-shadow: 1px 1px 3px black;
+  transition: all 0.3s ease; text-shadow: 1px 1px 3px black;
 }
 .tab--active { background-color: rgba(120, 170, 255, 0.3); border-color: #7aa7ff; color: #fff; box-shadow: 0 0 20px rgba(120, 170, 255, 0.6); }
 
@@ -211,7 +193,7 @@ body::before {
 .mode-control {
   display: flex; gap: 15px; align-items: center; justify-content: center;
   background-color: rgba(18, 26, 44, 0.7); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
-  border: 1px solid rgba(120, 170, 255, 0.2); border-radius: 16px; padding: 15px 20px; margin-bottom: 20px; backdrop-filter: blur(10px);
+  border: 1px solid rgba(120, 170, 255, 0.2); border-radius: 16px; padding: 15px 20px; margin-bottom: 20px;
 }
 .mode-control label { color: #a8c4ff; font-weight: bold; font-size: 15px; letter-spacing: 1px; text-shadow: 1px 1px 2px black; }
 .mode-control select {
@@ -224,9 +206,9 @@ body::before {
 .admin__row { 
   display: grid; grid-template-columns: 1fr auto auto; gap: 15px; align-items: center; padding: 16px 20px;
   background-color: rgba(10, 15, 30, 0.6); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
-  border: 1px solid rgba(120, 170, 255, 0.3); border-radius: 16px; font-size: 15px; transition: all 0.3s ease; backdrop-filter: blur(8px); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(120, 170, 255, 0.3); border-radius: 16px; font-size: 15px; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
-.admin__row:hover { background-color: rgba(10, 15, 30, 0.8); border-color: rgba(120, 170, 255, 0.8); transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0, 40, 120, 0.5); }
+.admin__row:hover { background-color: rgba(10, 15, 30, 0.8); border-color: rgba(120, 170, 255, 0.8); transform: translateY(-2px); }
 .admin__row strong { color: #fff; font-size: 16px; text-shadow: 1px 1px 2px black; }
 .admin__row small { color: #a8c4ff; display: block; margin-top: 6px; font-size: 13px; text-shadow: 1px 1px 2px black; }
 
@@ -249,7 +231,7 @@ body::before {
 .chats { display: grid; gap: 15px; }
 .chat-block { 
   background-color: rgba(18, 26, 44, 0.7); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
-  border: 1px solid rgba(120, 170, 255, 0.15); border-radius: 16px; padding: 20px; backdrop-filter: blur(10px);
+  border: 1px solid rgba(120, 170, 255, 0.15); border-radius: 16px; padding: 20px;
 }
 .chat-block__head { font-size: 16px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid rgba(120, 170, 255, 0.1); }
 .chat-block__head strong { color: #a8c4ff; }
@@ -257,7 +239,7 @@ body::before {
 
 .notes-block { 
   background-color: rgba(18, 26, 44, 0.7); background-image: url('glass.png'); background-size: cover; background-blend-mode: overlay;
-  border: 1px solid rgba(120, 170, 255, 0.15); border-radius: 16px; padding: 20px; backdrop-filter: blur(10px);
+  border: 1px solid rgba(120, 170, 255, 0.15); border-radius: 16px; padding: 20px;
 }
 
 .notes-textarea { 
