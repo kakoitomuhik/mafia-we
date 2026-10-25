@@ -283,8 +283,7 @@
         const imgEl = document.getElementById('portrait-img');
         if (imgEl) {
           const genderSuffix = isFemale ? '_f' : '_m';
-          // ВОТ ТУТ ДОБАВЛЕН .v ДЛЯ КАРТИНОК
-          imgEl.src = `/${card.image}${genderSuffix}.v.png`;
+          imgEl.src = `/${card.image}${genderSuffix}.png`;
         }
       }
 
