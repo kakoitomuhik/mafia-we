@@ -359,17 +359,18 @@
               btn.style.padding = '10px';
               btn.style.fontSize = '14px';
               btn.innerText = `${p.randomCipher || p.cipher}`;
-              btn.onclick = async () => {
-                if (!confirm(`Забрать с собой нумера ${p.randomCipher || p.cipher}?`)) return;
-                await fetch(`/api/state/${p.id}`, {
-                  method: 'POST', headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ dead: true })
+              btn.onclick = () => {
+                showCustomConfirm(`Забрать с собой нумера ${p.randomCipher || p.cipher}?`, async () => {
+                  await fetch(`/api/state/${p.id}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dead: true })
+                  });
+                  await fetch(`/api/state/${card.id}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ avengerUsed: true })
+                  });
+                  location.reload(); 
                 });
-                await fetch(`/api/state/${card.id}`, {
-                  method: 'POST', headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ avengerUsed: true })
-                });
-                location.reload(); 
               };
               targetsBox.appendChild(btn);
             });
@@ -413,13 +414,35 @@
       loadChat();
     }
 
-    async function castVote(targetId) {
-      if (!confirm(targetId ? 'Подтвердить ваш голос?' : 'Вы уверены, что хотите воздержаться?')) return;
-      await fetch('/api/vote', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ voterId: card.id, targetId: targetId })
+    function castVote(targetId) {
+      showCustomConfirm(targetId ? 'Подтвердить ваш голос?' : 'Вы уверены, что хотите воздержаться?', async () => {
+        await fetch('/api/vote', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ voterId: card.id, targetId: targetId })
+        });
+        await renderCard();
       });
-      await renderCard();
+    }
+
+    function showCustomConfirm(text, onConfirm) {
+      const modal = document.createElement('div');
+      modal.className = 'custom-confirm';
+      modal.innerHTML = `
+        <div class="custom-confirm__box">
+          <div class="custom-confirm__text">${text}</div>
+          <div class="custom-confirm__buttons">
+            <button class="custom-confirm__btn" id="confirm-no">Отмена</button>
+            <button class="custom-confirm__btn custom-confirm__btn--yes" id="confirm-yes">Да</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      document.getElementById('confirm-no').onclick = () => modal.remove();
+      document.getElementById('confirm-yes').onclick = () => {
+        modal.remove();
+        onConfirm();
+      };
     }
 
     async function loadChat() {
