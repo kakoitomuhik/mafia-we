@@ -11,11 +11,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 let state = {}; 
 let chat = {}; 
-let votes = {}; // Память для голосов
+let votes = {}; 
 let usedTokens = {}; 
 let currentNight = 1;
 let currentMode = 10; 
 let gameCards = null;
+let isVotingOpen = false;
 
 const PROFESSIONS = [
   "Инженер", "Архитектор", "Учитель", "Бухгалтер", 
@@ -28,8 +29,8 @@ const CIPHER_LETTERS = ["А", "Б", "В", "Г", "Д", "Е", "Ж", "З", "И", "�
 const GOALS = [
   { img: "poet", name: "Поэт", nameF: "Поэтесса", task: "Расскажи историю, которую оценят 3 человека.", quote: "Я говорю — и стекло трещит." },
   { img: "citizen", name: "Порядочный нумер", nameF: "Порядочная нумер", task: "Ни разу не быть выбранным на голосование.", quote: "Чтобы выжить в стеклянном доме — стань стеклом." },
-  { img: "lawyer", name: "Юрист", nameF: "Юристка", task: "Оправдай того, на кого все думают (добейся, чтобы его не казнили).", quote: "Люди пишут правила. Люди ошибаются." },
-  { img: "pacifist", name: "Пацифист", nameF: "Пацифистка", task: "Сделай так, чтобы люди не голосовали (все воздержались) хотя бы один раз.", quote: "Любовь важнее закона." },
+  { img: "lawyer", name: "Юрист", nameF: "Юристка", task: "Оправдай того, на кого все думают.", quote: "Люди пишут правила. Люди ошибаются." },
+  { img: "pacifist", name: "Пацифист", nameF: "Пацифистка", task: "Сделай так, чтобы люди не голосовали хотя бы один раз.", quote: "Любовь важнее закона." },
   { img: "propagandist", name: "Агитатор", nameF: "Агитаторша", task: "Сделай так, чтобы за того, кого ты выбрал, проголосовало большинство.", quote: "Толпа — механизм. Найди рычаг." }
 ];
 
@@ -112,7 +113,6 @@ app.post('/api/state/:id', (req, res) => {
   res.json(state[id]);
 });
 
-// --- ГОЛОСОВАНИЕ ---
 app.get('/api/votes', (_, res) => res.json(votes));
 app.post('/api/vote', (req, res) => {
   const { voterId, targetId } = req.body;
@@ -122,6 +122,12 @@ app.post('/api/vote', (req, res) => {
 app.post('/api/reset-votes', (_, res) => {
   votes = {};
   res.json({ ok: true });
+});
+
+app.get('/api/voting-status', (_, res) => res.json({ isVotingOpen }));
+app.post('/api/voting-status', (req, res) => {
+  isVotingOpen = req.body.isVotingOpen;
+  res.json({ isVotingOpen });
 });
 
 app.post('/api/set-mode', (req, res) => {
@@ -136,6 +142,7 @@ app.post('/api/next-night', (_, res) => {
 
 app.post('/api/reset', (_, res) => {
   state = {}; chat = {}; votes = {}; usedTokens = {}; currentNight = 1;
+  isVotingOpen = false;
   gameCards = null; 
   res.json({ ok: true });
 });
