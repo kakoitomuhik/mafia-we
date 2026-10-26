@@ -210,11 +210,7 @@
         if (card.alibiProfession === "Учитель") displayAlibi = "Учительница";
         if (card.alibiProfession === "Сварщик") displayAlibi = "Сварщица";
         if (card.alibiProfession === "Программист") displayAlibi = "Программистка";
-        if (card.goalName === "«Поэт»") displayGoal = "«Поэтесса»";
-        if (card.goalName === "«Пропагандист»") displayGoal = "«Пропагандистка»";
-        if (card.goalName === "«Порядочный гражданин»") displayGoal = "«Порядочная гражданка»";
-        if (card.goalName === "«Пацифист»") displayGoal = "«Пацифистка»";
-        if (card.goalName === "«Неуловимый»") displayGoal = "«Неуловимая»";
+        if (card.goalNameF) displayGoal = card.goalNameF;
       }
 
       if (card.role === "Икона сопротивления") {
@@ -265,7 +261,6 @@
                 <h3 style="color: #7aa7ff; margin-bottom: 10px; font-size: 16px; text-align: center;">Голосование открыто</h3>
                 <div id="vote-targets" style="display: flex; flex-direction: column; gap: 8px;"></div>
                 
-                <!-- ОФОРМЛЕННАЯ КНОПКА ВОЗДЕРЖАТЬСЯ -->
                 <button onclick="castVote(null)" style="margin-top: 10px; width: 100%; padding: 10px; background: rgba(120,170,255,0.1); border: 1px solid #4a7fff; border-radius: 8px; color: #fff; cursor: pointer; font-size: 14px;">Воздержаться</button>
               </div>
             ` : `
