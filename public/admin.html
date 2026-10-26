@@ -79,6 +79,7 @@
       } else if (tabName === 'chats') {
         document.getElementById('btn-chats').classList.add('tab--active');
         document.getElementById('tab-chats').classList.remove('hidden');
+        renderChats();
       } else if (tabName === 'votes') {
         document.getElementById('btn-votes').classList.add('tab--active');
         document.getElementById('tab-votes').classList.remove('hidden');
@@ -107,6 +108,7 @@
         
         const resChat = await fetch('/api/chat');
         const newChatData = await resChat.json();
+        
         const newChatJSON = JSON.stringify(newChatData);
         if (newChatJSON !== lastChatJSON) {
           chatData = newChatData;
@@ -168,47 +170,9 @@
       }).join('');
     }
 
-    async function renderVotes() {
-      try {
-        votesData = await (await fetch('/api/votes')).json();
-        const allCards = cardsData;
-        
-        if (!allCards || allCards.length === 0) {
-          votesListEl.innerHTML = '<span style="color:#889">Нет данных.</span>';
-          return;
-        }
-
-        let html = '';
-        allCards.forEach(c => {
-          if ((stateData.cards[c.id] || {}).dead) return;
-
-          const myVote = votesData[c.id];
-          let voteText = "Не голосовал";
-          
-          if (myVote !== undefined) {
-            if (myVote === null) voteText = "Воздержался";
-            else {
-              const target = allCards.find(t => t.id === myVote);
-              voteText = target ? `За ${target.randomCipher || target.cipher}` : "Неизвестно";
-            }
-          }
-
-          const displayRole = c.role === "Икона сопротивления" ? "Строитель (Икона)" : c.role;
-
-          html += `
-            <div class="admin__row" style="grid-template-columns: 1fr auto;">
-              <div>
-                <strong>${c.randomCipher || c.cipher} · ${displayRole}</strong>
-                <small>Голос: <span style="color: #69f0ae;">${voteText}</span></small>
-              </div>
-            </div>
-          `;
-        });
-        votesListEl.innerHTML = html;
-      } catch(e) {}
-    }
-
     function renderChats() {
+      if (!chatsEl) return;
+      
       const withMsgs = chatData.filter(c => c.messages && c.messages.length > 0);
       if (withMsgs.length === 0) {
         chatsEl.innerHTML = '<div style="color:#7a879e; padding:20px; text-align:center;">Пока никто не задал вопросов.</div>';
@@ -262,6 +226,46 @@
         body: JSON.stringify({ text })
       });
       loadData();
+    }
+
+    async function renderVotes() {
+      try {
+        votesData = await (await fetch('/api/votes')).json();
+        const allCards = cardsData;
+        
+        if (!allCards || allCards.length === 0) {
+          votesListEl.innerHTML = '<span style="color:#889">Нет данных.</span>';
+          return;
+        }
+
+        let html = '';
+        allCards.forEach(c => {
+          if ((stateData.cards[c.id] || {}).dead) return;
+
+          const myVote = votesData[c.id];
+          let voteText = "Не голосовал";
+          
+          if (myVote !== undefined) {
+            if (myVote === null) voteText = "Воздержался";
+            else {
+              const target = allCards.find(t => t.id === myVote);
+              voteText = target ? `За ${target.randomCipher || target.cipher}` : "Неизвестно";
+            }
+          }
+
+          const displayRole = c.role === "Икона сопротивления" ? "Строитель (Икона)" : c.role;
+
+          html += `
+            <div class="admin__row" style="grid-template-columns: 1fr auto;">
+              <div>
+                <strong>${c.randomCipher || c.cipher} · ${displayRole}</strong>
+                <small>Голос: <span style="color: #69f0ae;">${voteText}</span></small>
+              </div>
+            </div>
+          `;
+        });
+        votesListEl.innerHTML = html;
+      } catch(e) {}
     }
 
     async function saveGlobalNotes() {
