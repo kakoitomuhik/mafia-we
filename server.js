@@ -113,6 +113,35 @@ app.post('/api/state/:id', (req, res) => {
   res.json(state[id]);
 });
 
+// --- ЧАТ ---
+app.get('/api/chat', (_, res) => {
+  const summary = getCardsWithProfessions().map(c => ({
+    token: c.token, 
+    cipher: c.randomCipher || c.cipher, 
+    role: c.role, 
+    alibiProfession: c.alibiProfession,
+    messages: chat[c.token] || []
+  }));
+  res.json(summary);
+});
+
+app.get('/api/chat/:token', (req, res) => res.json(chat[req.params.token] || []));
+app.post('/api/chat/:token', (req, res) => {
+  const text = (req.body.text || '').trim();
+  if (!text) return res.status(400).json({ error: 'empty' });
+  const t = req.params.token;
+  (chat[t] = chat[t] || []).push({ from: 'player', text, ts: Date.now() });
+  res.json({ ok: true });
+});
+app.post('/api/chat/:token/reply', (req, res) => {
+  const text = (req.body.text || '').trim();
+  if (!text) return res.status(400).json({ error: 'empty' });
+  const t = req.params.token;
+  (chat[t] = chat[t] || []).push({ from: 'admin', text, ts: Date.now() });
+  res.json({ ok: true });
+});
+// -----------
+
 app.get('/api/votes', (_, res) => res.json(votes));
 app.post('/api/vote', (req, res) => {
   const { voterId, targetId } = req.body;
@@ -145,29 +174,6 @@ app.post('/api/reset', (_, res) => {
   isVotingOpen = false;
   gameCards = null; 
   res.json({ ok: true });
-});
-
-app.get('/api/chat/:token', (req, res) => res.json(chat[req.params.token] || []));
-app.post('/api/chat/:token', (req, res) => {
-  const text = (req.body.text || '').trim();
-  if (!text) return res.status(400).json({ error: 'empty' });
-  const t = req.params.token;
-  (chat[t] = chat[t] || []).push({ from: 'player', text, ts: Date.now() });
-  res.json({ ok: true });
-});
-app.post('/api/chat/:token/reply', (req, res) => {
-  const text = (req.body.text || '').trim();
-  if (!text) return res.status(400).json({ error: 'empty' });
-  const t = req.params.token;
-  (chat[t] = chat[t] || []).push({ from: 'admin', text, ts: Date.now() });
-  res.json({ ok: true });
-});
-app.get('/api/chat', (_, res) => {
-  const summary = getCardsWithProfessions().map(c => ({
-    token: c.token, cipher: c.randomCipher || c.cipher, role: c.role, alibiProfession: c.alibiProfession,
-    messages: chat[c.token] || []
-  }));
-  res.json(summary);
 });
 
 app.listen(PORT, () => console.log(`▶  http://localhost:${PORT}`));
