@@ -174,7 +174,6 @@ body {
 /* СТИЛИ ДЛЯ АДМИНКИ (БЛАГОДЕТЕЛЬ)           */
 /* ========================================= */
 
-/* ФОН СО СТЕКЛОМ ДЛЯ АДМИНКИ */
 .admin { 
   max-width: 900px; 
   margin: 0 auto; 
@@ -211,9 +210,10 @@ body {
 }
 .tab--active { background-color: rgba(120, 170, 255, 0.4); border-color: #7aa7ff; color: #fff; box-shadow: 0 0 20px rgba(120, 170, 255, 0.6); }
 
-.tab-panel { display: none; }
-.tab-panel.active { display: block; }
-.tab-panel.hidden { display: none; }
+/* ЖЕСТКОЕ СКРЫТИЕ/ПОКАЗ ПАНЕЛЕЙ */
+.tab-panel { display: none !important; }
+.tab-panel.active { display: block !important; }
+.tab-panel.hidden { display: none !important; }
 
 .mode-control {
   display: flex; gap: 15px; align-items: center; justify-content: center;
