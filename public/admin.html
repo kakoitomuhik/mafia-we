@@ -97,10 +97,16 @@
 
     async function loadData() {
       try {
-        cardsData = await (await fetch('/api/cards')).json();
-        stateData = await (await fetch('/api/state')).json();
+        const resCards = await fetch('/api/cards');
+        if (!resCards.ok) throw new Error('Ошибка загрузки карт');
+        cardsData = await resCards.json();
+
+        const resState = await fetch('/api/state');
+        if (!resState.ok) throw new Error('Ошибка загрузки статусов');
+        stateData = await resState.json();
         
-        const newChatData = await (await fetch('/api/chat')).json();
+        const resChat = await fetch('/api/chat');
+        const newChatData = await resChat.json();
         const newChatJSON = JSON.stringify(newChatData);
         if (newChatJSON !== lastChatJSON) {
           chatData = newChatData;
@@ -127,12 +133,16 @@
         }
 
       } catch (e) {
-        listEl.innerHTML = '<span style="color:red">Ошибка загрузки данных.</span>';
+        listEl.innerHTML = `<span style="color:red">Ошибка загрузки данных: ${e.message}</span>`;
         console.error(e);
       }
     }
 
     function renderPlayers() {
+      if (!cardsData || cardsData.length === 0) {
+        listEl.innerHTML = '<span style="color:#889">Нет данных об игроках. Нажмите "Сбросить игру".</span>';
+        return;
+      }
       listEl.innerHTML = cardsData.map(c => {
         const st = stateData.cards[c.id] || { dead: false, personalWinDone: false };
         const statusDot = st.online ? '<span style="color:#69f0ae; margin-right:8px;">●</span>' : '<span style="color:#55617a; margin-right:8px;">○</span>';
@@ -163,6 +173,11 @@
         votesData = await (await fetch('/api/votes')).json();
         const allCards = cardsData;
         
+        if (!allCards || allCards.length === 0) {
+          votesListEl.innerHTML = '<span style="color:#889">Нет данных.</span>';
+          return;
+        }
+
         let html = '';
         allCards.forEach(c => {
           if ((stateData.cards[c.id] || {}).dead) return;
