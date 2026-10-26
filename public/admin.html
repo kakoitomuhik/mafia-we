@@ -69,32 +69,37 @@
     let lastChatJSON = '';
     let votingStatus = false;
 
-    function switchTab(tabName) {
+    // ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК (напрямую, без лишних функций)
+    document.getElementById('btn-players').onclick = () => {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab--active'));
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+      document.getElementById('btn-players').classList.add('tab--active');
+      document.getElementById('tab-players').classList.remove('hidden');
+    };
 
-      if (tabName === 'players') {
-        document.getElementById('btn-players').classList.add('tab--active');
-        document.getElementById('tab-players').classList.remove('hidden');
-      } else if (tabName === 'chats') {
-        document.getElementById('btn-chats').classList.add('tab--active');
-        document.getElementById('tab-chats').classList.remove('hidden');
-        renderChats();
-      } else if (tabName === 'votes') {
-        document.getElementById('btn-votes').classList.add('tab--active');
-        document.getElementById('tab-votes').classList.remove('hidden');
-        renderVotes();
-      } else if (tabName === 'notes') {
-        document.getElementById('btn-notes').classList.add('tab--active');
-        document.getElementById('tab-notes').classList.remove('hidden');
-        globalNotesEl.value = stateData['global_notes'] || "";
-      }
-    }
+    document.getElementById('btn-chats').onclick = () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab--active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+      document.getElementById('btn-chats').classList.add('tab--active');
+      document.getElementById('tab-chats').classList.remove('hidden');
+      renderChats();
+    };
 
-    document.getElementById('btn-players').onclick = () => switchTab('players');
-    document.getElementById('btn-chats').onclick = () => switchTab('chats');
-    document.getElementById('btn-votes').onclick = () => switchTab('votes');
-    document.getElementById('btn-notes').onclick = () => switchTab('notes');
+    document.getElementById('btn-votes').onclick = () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab--active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+      document.getElementById('btn-votes').classList.add('tab--active');
+      document.getElementById('tab-votes').classList.remove('hidden');
+      renderVotes();
+    };
+
+    document.getElementById('btn-notes').onclick = () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab--active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+      document.getElementById('btn-notes').classList.add('tab--active');
+      document.getElementById('tab-notes').classList.remove('hidden');
+      globalNotesEl.value = stateData['global_notes'] || "";
+    };
 
     async function loadData() {
       try {
@@ -179,11 +184,6 @@
         return;
       }
 
-      const activeElement = document.activeElement;
-      const isTyping = activeElement && activeElement.tagName === 'INPUT';
-      const typingId = isTyping ? activeElement.id : null;
-      const typingValue = isTyping ? activeElement.value : '';
-
       chatsEl.innerHTML = withMsgs.map(c => {
         const msgsHtml = c.messages.map(m => `
           <div class="msg msg--${m.from}">
@@ -192,7 +192,6 @@
           </div>
         `).join('');
 
-        const inputValue = (typingId === `reply-${c.token}`) ? typingValue : '';
         let chatDisplayRole = c.role === "Икона сопротивления" ? "Строитель" : c.role;
 
         return `
@@ -204,17 +203,12 @@
               ${msgsHtml}
             </div>
             <div class="chat__input">
-              <input type="text" id="reply-${c.token}" value="${inputValue}" placeholder="Ответить..." />
+              <input type="text" id="reply-${c.token}" placeholder="Ответить..." />
               <button onclick="sendReply('${c.token}')">Ответить</button>
             </div>
           </div>
         `;
       }).join('');
-
-      if (isTyping && typingId) {
-        const el = document.getElementById(typingId);
-        if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
-      }
     }
 
     async function sendReply(token) {
