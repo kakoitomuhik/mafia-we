@@ -11,10 +11,10 @@
     <h1>Благодетель</h1>
     
     <div class="tabs">
-      <button class="tab tab--active" id="btn-players">Игроки</button>
-      <button class="tab" id="btn-chats">Вопросы</button>
-      <button class="tab" id="btn-votes">Голосование</button>
-      <button class="tab" id="btn-notes">Заметки</button>
+      <button class="tab tab--active" id="btn-players" onclick="showTab('players')">Игроки</button>
+      <button class="tab" id="btn-chats" onclick="showTab('chats')">Вопросы</button>
+      <button class="tab" id="btn-votes" onclick="showTab('votes')">Голосование</button>
+      <button class="tab" id="btn-notes" onclick="showTab('notes')">Заметки</button>
     </div>
     
     <div id="tab-players" class="tab-panel active">
@@ -28,9 +28,7 @@
         <button id="next-night" class="btn-ghost" style="border-color: #4a7fff; color: #4a7fff; margin: 0;">Следующая ночь 🌙</button>
         <button id="toggle-vote" class="btn-ghost" style="border-color: #ffd47a; color: #ffd47a; margin: 0;">Открыть голосование</button>
       </div>
-
       <div id="list" class="admin__list">Загрузка...</div>
-      
       <div class="control-buttons">
         <button id="reset" class="btn-ghost danger">Сбросить игру</button>
       </div>
@@ -56,14 +54,7 @@
   </div>
 
   <script>
-    // Элементы
-    const listEl = document.getElementById('list');
-    const chatsEl = document.getElementById('chats');
-    const votesListEl = document.getElementById('votes-list');
-    const globalNotesEl = document.getElementById('global-notes');
-    const modeSelect = document.getElementById('mode-select');
-    
-    // Данные
+    // Глобальные переменные
     let cardsData = [];
     let stateData = { cards: {}, night: 1, mode: 10 };
     let chatData = [];
@@ -71,126 +62,103 @@
     let lastChatJSON = '';
     let votingStatus = false;
 
-    // 1. ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК (просто и надежно)
-    function showTab(tabId, btnId) {
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+    // 1. ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК (жестко, без лишних проверок)
+    function showTab(tabName) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab--active'));
-      document.getElementById(tabId).classList.remove('hidden');
-      document.getElementById(btnId).classList.add('tab--active');
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+      
+      document.getElementById('btn-' + tabName).classList.add('tab--active');
+      document.getElementById('tab-' + tabName).classList.remove('hidden');
+      
+      if (tabName === 'chats') renderChats();
+      if (tabName === 'votes') renderVotes();
+      if (tabName === 'notes') document.getElementById('global-notes').value = stateData['global_notes'] || "";
     }
 
-    document.getElementById('btn-players').onclick = () => showTab('tab-players', 'btn-players');
-    document.getElementById('btn-chats').onclick = () => { showTab('tab-chats', 'btn-chats'); renderChats(); };
-    document.getElementById('btn-votes').onclick = () => { showTab('tab-votes', 'btn-votes'); renderVotes(); };
-    document.getElementById('btn-notes').onclick = () => { 
-      showTab('tab-notes', 'btn-notes'); 
-      globalNotesEl.value = stateData['global_notes'] || ""; 
-    };
-
-    // 2. ЗАГРУЗКА ДАННЫХ
-    async function loadData() {
+    // 2. ЗАГРУЗКА ДАННЫХ (разделена на независимые куски, чтобы ошибка в одном не ломала другое)
+    async function loadAllData() {
+      // Карты
       try {
-        // Карты и статусы
-        const resCards = await fetch('/api/cards');
-        if (resCards.ok) cardsData = await resCards.json();
-        
-        const resState = await fetch('/api/state');
-        if (resState.ok) stateData = await resState.json();
-        
-        modeSelect.value = stateData.mode || 10;
-        renderPlayers();
+        const r = await fetch('/api/cards');
+        if (r.ok) cardsData = await r.json();
+      } catch(e) { console.error('Ошибка карт', e); }
 
-        // Чат
-        const resChat = await fetch('/api/chat');
-        if (resChat.ok) {
-          const newChatData = await resChat.json();
-          const newChatJSON = JSON.stringify(newChatData);
-          if (newChatJSON !== lastChatJSON) {
-            chatData = newChatData;
-            lastChatJSON = newChatJSON;
+      // Статусы
+      try {
+        const r = await fetch('/api/state');
+        if (r.ok) stateData = await r.json();
+        document.getElementById('mode-select').value = stateData.mode || 10;
+      } catch(e) { console.error('Ошибка статусов', e); }
+
+      renderPlayers();
+
+      // Чаты
+      try {
+        const r = await fetch('/api/chat');
+        if (r.ok) {
+          const newChat = await r.json();
+          const str = JSON.stringify(newChat);
+          if (str !== lastChatJSON) {
+            chatData = newChat;
+            lastChatJSON = str;
             renderChats();
           }
         }
+      } catch(e) { console.error('Ошибка чатов', e); }
 
-        // Статус голосования
-        const voteRes = await fetch('/api/voting-status');
-        if (voteRes.ok) {
-          const voteStatus = await voteRes.json();
-          votingStatus = voteStatus.isVotingOpen;
-          
-          const toggleBtn = document.getElementById('toggle-vote');
-          if (votingStatus) {
-            toggleBtn.innerText = "Закрыть голосование";
-            toggleBtn.style.borderColor = "#ff5252";
-            toggleBtn.style.color = "#ff9a9a";
-          } else {
-            toggleBtn.innerText = "Открыть голосование";
-            toggleBtn.style.borderColor = "#ffd47a";
-            toggleBtn.style.color = "#ffd47a";
-          }
+      // Статус голосования
+      try {
+        const r = await fetch('/api/voting-status');
+        if (r.ok) {
+          const st = await r.json();
+          votingStatus = st.isVotingOpen;
+          const btn = document.getElementById('toggle-vote');
+          btn.innerText = votingStatus ? "Закрыть голосование" : "Открыть голосование";
+          btn.style.borderColor = votingStatus ? "#ff5252" : "#ffd47a";
+          btn.style.color = votingStatus ? "#ff9a9a" : "#ffd47a";
         }
-      } catch (e) {
-        console.error("Ошибка при загрузке:", e);
-      }
+      } catch(e) { console.error('Ошибка статуса голосования', e); }
     }
 
-    // 3. ОТРИСОВКА ИГРОКОВ
+    // 3. ОТРИСОВКА ЭЛЕМЕНТОВ
     function renderPlayers() {
+      const listEl = document.getElementById('list');
       if (!cardsData || cardsData.length === 0) {
         listEl.innerHTML = '<span style="color:#889">Нет данных. Нажмите "Сбросить игру".</span>';
         return;
       }
       listEl.innerHTML = cardsData.map(c => {
         const st = stateData.cards[c.id] || { dead: false, personalWinDone: false };
-        const statusDot = st.online ? '<span style="color:#69f0ae; margin-right:8px;">●</span>' : '<span style="color:#55617a; margin-right:8px;">○</span>';
-        const extraInfo = c.quest ? ` | Квест: ${c.quest}` : '';
-        
-        let displayRole = c.role;
-        if (c.role === "Икона сопротивления") displayRole = "Строитель (Икона)";
-
+        const dot = st.online ? '<span style="color:#69f0ae; margin-right:8px;">●</span>' : '<span style="color:#55617a; margin-right:8px;">○</span>';
+        const role = c.role === "Икона сопротивления" ? "Строитель (Икона)" : c.role;
         return `
           <div class="admin__row">
             <div>
-              <strong>${statusDot} ${c.randomCipher || c.cipher} · ${displayRole}</strong>
-              <small>${c.alibiProfession || '—'}${extraInfo}</small>
+              <strong>${dot} ${c.randomCipher || c.cipher} · ${role}</strong>
+              <small>${c.alibiProfession || '—'}</small>
             </div>
-            <button class="btn-dead ${st.dead ? 'on' : ''}" onclick="toggleState(${c.id}, 'dead', ${!st.dead})">
-              ${st.dead ? 'Мёртв' : 'Жив'}
-            </button>
-            <button class="btn-win ${st.personalWinDone ? 'on' : ''}" onclick="toggleState(${c.id}, 'personalWinDone', ${!st.personalWinDone})">
-              ${st.personalWinDone ? 'Победа' : '—'}
-            </button>
+            <button class="btn-dead ${st.dead ? 'on' : ''}" onclick="toggleState(${c.id}, 'dead', ${!st.dead})">${st.dead ? 'Мёртв' : 'Жив'}</button>
+            <button class="btn-win ${st.personalWinDone ? 'on' : ''}" onclick="toggleState(${c.id}, 'personalWinDone', ${!st.personalWinDone})">${st.personalWinDone ? 'Победа' : '—'}</button>
           </div>
         `;
       }).join('');
     }
 
-    // 4. ОТРИСОВКА ЧАТА
     function renderChats() {
-      if (!chatsEl) return;
-      const withMsgs = chatData.filter(c => c.messages && c.messages.length > 0);
-      if (withMsgs.length === 0) {
-        chatsEl.innerHTML = '<div style="color:#7a879e; padding:20px; text-align:center;">Пока никто не задал вопросов.</div>';
+      const el = document.getElementById('chats');
+      if (!el) return;
+      const msgs = chatData.filter(c => c.messages && c.messages.length > 0);
+      if (msgs.length === 0) {
+        el.innerHTML = '<div style="color:#7a879e; padding:20px; text-align:center;">Пока никто не задал вопросов.</div>';
         return;
       }
-
-      chatsEl.innerHTML = withMsgs.map(c => {
-        const msgsHtml = c.messages.map(m => `
-          <div class="msg msg--${m.from}">
-            ${m.text}
-            <small>${new Date(m.ts).toLocaleTimeString('ru', {hour:'2-digit',minute:'2-digit'})}</small>
-          </div>
-        `).join('');
-
-        let chatDisplayRole = c.role === "Икона сопротивления" ? "Строитель" : c.role;
-
+      el.innerHTML = msgs.map(c => {
+        const role = c.role === "Икона сопротивления" ? "Строитель" : c.role;
         return `
           <div class="chat-block">
-            <div class="chat-block__head">
-              <strong>${c.randomCipher || c.cipher} · ${chatDisplayRole}</strong> <small>(${c.alibiProfession || '—'})</small>
-            </div>
+            <div class="chat-block__head"><strong>${c.randomCipher || c.cipher} · ${role}</strong></div>
             <div class="chat__log" style="max-height:200px; overflow-y:auto; margin-bottom:10px;">
-              ${msgsHtml}
+              ${c.messages.map(m => `<div class="msg msg--${m.from}">${m.text}</div>`).join('')}
             </div>
             <div class="chat__input">
               <input type="text" id="reply-${c.token}" placeholder="Ответить..." />
@@ -201,6 +169,41 @@
       }).join('');
     }
 
+    async function renderVotes() {
+      const el = document.getElementById('votes-list');
+      if (!el) return;
+      try {
+        const r = await fetch('/api/votes');
+        if (!r.ok) throw new Error('Сеть');
+        votesData = await r.json();
+        
+        if (!cardsData || cardsData.length === 0) {
+          el.innerHTML = '<span style="color:#889">Нет данных.</span>';
+          return;
+        }
+        
+        el.innerHTML = cardsData.map(c => {
+          if ((stateData.cards[c.id] || {}).dead) return '';
+          const role = c.role === "Икона сопротивления" ? "Строитель (Икона)" : c.role;
+          const vote = votesData[c.id];
+          let text = "Не голосовал";
+          if (vote === null) text = "Воздержался";
+          else if (vote !== undefined) {
+            const t = cardsData.find(x => x.id === vote);
+            text = t ? `За ${t.randomCipher || t.cipher}` : "Неизвестно";
+          }
+          return `
+            <div class="admin__row" style="grid-template-columns: 1fr auto;">
+              <div><strong>${c.randomCipher || c.cipher} · ${role}</strong><small>Голос: <span style="color:#69f0ae;">${text}</span></small></div>
+            </div>
+          `;
+        }).join('');
+      } catch(e) {
+        el.innerHTML = '<span style="color:red">Ошибка загрузки голосов.</span>';
+      }
+    }
+
+    // 4. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
     async function sendReply(token) {
       const inp = document.getElementById('reply-' + token);
       const text = inp.value.trim();
@@ -209,66 +212,7 @@
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text })
       });
-      loadData();
-    }
-
-    // 5. ОТРИСОВКА ГОЛОСОВАНИЯ
-    async function renderVotes() {
-      try {
-        const res = await fetch('/api/votes');
-        if (!res.ok) throw new Error('Ошибка загрузки');
-        votesData = await res.json();
-        
-        const allCards = cardsData;
-        if (!allCards || allCards.length === 0) {
-          votesListEl.innerHTML = '<span style="color:#889">Нет данных.</span>';
-          return;
-        }
-
-        let html = '';
-        allCards.forEach(c => {
-          if ((stateData.cards[c.id] || {}).dead) return;
-
-          const myVote = votesData[c.id];
-          let voteText = "Не голосовал";
-          
-          if (myVote !== undefined) {
-            if (myVote === null) voteText = "Воздержался";
-            else {
-              const target = allCards.find(t => t.id === myVote);
-              voteText = target ? `За ${target.randomCipher || target.cipher}` : "Неизвестно";
-            }
-          }
-
-          const displayRole = c.role === "Икона сопротивления" ? "Строитель (Икона)" : c.role;
-
-          html += `
-            <div class="admin__row" style="grid-template-columns: 1fr auto;">
-              <div>
-                <strong>${c.randomCipher || c.cipher} · ${displayRole}</strong>
-                <small>Голос: <span style="color: #69f0ae;">${voteText}</span></small>
-              </div>
-            </div>
-          `;
-        });
-        votesListEl.innerHTML = html;
-      } catch(e) {
-        votesListEl.innerHTML = `<span style="color:red">Ошибка: ${e.message}</span>`;
-      }
-    }
-
-    // Вспомогательные функции
-    async function saveGlobalNotes() {
-      const text = globalNotesEl.value;
-      await fetch(`/api/state/global_notes`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notes: text })
-      });
-      const btn = event.target;
-      const oldText = btn.innerText;
-      btn.innerText = "Сохранено!";
-      btn.style.background = "rgba(80,255,160,0.2)";
-      setTimeout(() => { btn.innerText = oldText; btn.style.background = ""; }, 1500);
+      loadAllData();
     }
 
     async function toggleState(id, field, value) {
@@ -276,21 +220,32 @@
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: value })
       });
-      loadData();
+      loadAllData();
     }
 
-    modeSelect.onchange = async (e) => {
-      const newMode = e.target.value;
+    async function saveGlobalNotes() {
+      const text = document.getElementById('global-notes').value;
+      await fetch(`/api/state/global_notes`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: text })
+      });
+      const btn = event.target;
+      btn.innerText = "Сохранено!";
+      setTimeout(() => btn.innerText = "Сохранить заметки", 1500);
+    }
+
+    // 5. НАВЕШИВАЕМ ОБРАБОТЧИКИ
+    document.getElementById('mode-select').onchange = async (e) => {
       await fetch('/api/set-mode', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: parseInt(newMode) })
+        body: JSON.stringify({ mode: parseInt(e.target.value) })
       });
-      loadData();
+      loadAllData();
     };
 
     document.getElementById('next-night').onclick = async () => {
       await fetch('/api/next-night', { method: 'POST' });
-      loadData();
+      loadAllData();
     };
 
     document.getElementById('toggle-vote').onclick = async () => {
@@ -298,14 +253,14 @@
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isVotingOpen: !votingStatus })
       });
-      loadData();
+      loadAllData();
     };
 
     document.getElementById('reset').onclick = async () => {
-      if (!confirm('Сбросить игру и раздать новые роли?')) return;
+      if (!confirm('Сбросить игру?')) return;
       lastChatJSON = ''; 
       await fetch('/api/reset', { method: 'POST' });
-      loadData();
+      loadAllData();
     };
 
     document.getElementById('reset-votes').onclick = async () => {
@@ -313,9 +268,9 @@
       renderVotes();
     };
 
-    // Запуск
-    loadData();
-    setInterval(loadData, 3000);
+    // 6. ЗАПУСК
+    loadAllData();
+    setInterval(loadAllData, 3000);
   </script>
 </body>
 </html>
