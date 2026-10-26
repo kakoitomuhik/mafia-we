@@ -142,14 +142,34 @@
           const stateData = await stateRes.json();
           const st = (stateData.cards && stateData.cards[card.id]) || { dead: false, personalWinDone: false };
           
+          // Если игрок Мститель и он только что умер — не перерисовываем, чтобы не сбить выбор
           if (st.dead && card.isAvenger && !st.avengerUsed) {
             return; 
           }
 
+          // Проверяем, изменился ли статус жизни/смерти
           if (st.dead !== currentDeadStatus) {
             currentDeadStatus = st.dead;
             await renderCard();
+            return;
           }
+
+          // ПРОВЕРКА СТАТУСА ГОЛОСОВАНИЯ
+          const voteRes = await fetch('/api/voting-status');
+          const voteStatus = await voteRes.json();
+          const voteContainer = document.getElementById('vote-container');
+          
+          if (voteContainer) {
+            // Если голосование открыто, а плашки нет — перерисовываем
+            if (voteStatus.isVotingOpen && voteContainer.style.display === 'none') {
+              await renderCard();
+            }
+            // Если голосование закрыто, а плашка висит — скрываем её
+            else if (!voteStatus.isVotingOpen && voteContainer.style.display !== 'none') {
+              voteContainer.style.display = 'none';
+            }
+          }
+
         } catch (e) {}
       }, 2000);
 
