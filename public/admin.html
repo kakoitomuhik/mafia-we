@@ -26,10 +26,16 @@
           <option value="20">20 игроков</option>
         </select>
         <button id="next-night" class="btn-ghost" style="border-color: #4a7fff; color: #4a7fff; margin: 0;">Следующая ночь 🌙</button>
-        <button id="toggle-vote" class="btn-ghost" style="border-color: #ffd47a; color: #ffd47a; margin: 0;">Открыть голосование</button>
+        <button id="toggle-vote" class="btn-ghost" style="border-color: #ffd47a; color: #ffd47a; margin: 0;">Открыть/Закрыть голосование</button>
       </div>
 
-      <div id="list" class="admin__list">Загрузка...</div>
+      <div style="margin-bottom: 15px;">
+        <button onclick="loadData()" style="background: #4a7fff; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 16px; cursor: pointer; width: 100%;">
+          🔄 Обновить данные
+        </button>
+      </div>
+
+      <div id="list" class="admin__list">Нажмите "Обновить данные"</div>
       
       <div class="control-buttons">
         <button id="reset" class="btn-ghost danger">Сбросить игру</button>
@@ -37,11 +43,11 @@
     </div>
     
     <div id="tab-chats" class="tab-panel hidden">
-      <div id="chats" class="chats">Загрузка...</div>
+      <div id="chats" class="chats">Нажмите "Обновить данные"</div>
     </div>
 
     <div id="tab-votes" class="tab-panel hidden">
-      <div id="votes-list" class="admin__list">Загрузка...</div>
+      <div id="votes-list" class="admin__list">Нажмите "Обновить данные"</div>
       <div class="control-buttons">
         <button id="reset-votes" class="btn-ghost danger">Сбросить голоса</button>
       </div>
@@ -56,7 +62,12 @@
   </div>
 
   <script>
-    // --- ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК ---
+    let cardsData = [];
+    let stateData = { cards: {}, night: 1, mode: 10, isMassacre: false };
+    let chatData = [];
+    let votesData = {};
+    let votingStatus = false;
+
     function showTab(tabName) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab--active'));
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
@@ -69,55 +80,42 @@
       if (tabName === 'notes') document.getElementById('global-notes').value = stateData['global_notes'] || "";
     }
 
-    // --- ЗАГРУЗКА ДАННЫХ ---
-    let cardsData = [];
-    let stateData = { cards: {}, night: 1, mode: 10, isMassacre: false };
-    let chatData = [];
-    let votingStatus = false;
-
+    // Загружаем ВСЕ данные по нажатию кнопки
     async function loadData() {
       try {
-        // 1. Карты
         const resCards = await fetch('/api/cards');
         if (resCards.ok) cardsData = await resCards.json();
 
-        // 2. Статусы
         const resState = await fetch('/api/state');
         if (resState.ok) stateData = await resState.json();
 
-        // 3. Чат
         const resChat = await fetch('/api/chat');
         if (resChat.ok) chatData = await resChat.json();
 
-        // 4. Статус голосования
         const voteRes = await fetch('/api/voting-status');
         if (voteRes.ok) {
           const vs = await voteRes.json();
           votingStatus = vs.isVotingOpen;
-          
-          const toggleBtn = document.getElementById('toggle-vote');
-          if (votingStatus) {
-            toggleBtn.innerText = "Закрыть голосование";
-            toggleBtn.style.borderColor = "#ff5252";
-            toggleBtn.style.color = "#ff9a9a";
-          } else {
-            toggleBtn.innerText = "Открыть голосование";
-            toggleBtn.style.borderColor = "#ffd47a";
-            toggleBtn.style.color = "#ffd47a";
-          }
         }
 
-        // Обновляем интерфейс
         document.getElementById('mode-select').value = stateData.mode || 10;
         renderPlayers();
-        if (!document.getElementById('tab-chats').classList.contains('hidden')) renderChats();
+        renderChats();
+        renderVotes();
+
+        if (votingStatus) {
+          document.getElementById('toggle-vote').style.borderColor = "#ff5252";
+          document.getElementById('toggle-vote').style.color = "#ff9a9a";
+        } else {
+          document.getElementById('toggle-vote').style.borderColor = "#ffd47a";
+          document.getElementById('toggle-vote').style.color = "#ffd47a";
+        }
 
       } catch (e) {
-        console.error("Ошибка при загрузке:", e);
+        alert("Ошибка загрузки данных с сервера!");
       }
     }
 
-    // --- ОТРИСОВКА ИГРОКОВ ---
     function renderPlayers() {
       const listEl = document.getElementById('list');
       if (!cardsData || cardsData.length === 0) {
@@ -134,7 +132,7 @@
           <div class="admin__row">
             <div>
               <strong>${dot} ${c.randomCipher || c.cipher} · ${role}</strong>
-              <small>${c.alibiProfession || '—'} | ${c.quest ? c.quest.substring(0, 30) + '...' : ''}</small>
+              <small>${c.alibiProfession || '—'}</small>
             </div>
             <button class="btn-dead ${st.dead ? 'on' : ''}" onclick="toggleState(${c.id}, 'dead', ${!st.dead})">
               ${st.dead ? 'Мёртв' : 'Жив'}
@@ -147,7 +145,6 @@
       }).join('');
     }
 
-    // --- ОТРИСОВКА ЧАТОВ ---
     function renderChats() {
       const chatsEl = document.getElementById('chats');
       if (!chatsEl) return;
@@ -160,9 +157,7 @@
 
       chatsEl.innerHTML = withMsgs.map(c => {
         const msgsHtml = c.messages.map(m => `
-          <div class="msg msg--${m.from}">
-            ${m.text}
-          </div>
+          <div class="msg msg--${m.from}">${m.text}</div>
         `).join('');
 
         let role = c.role === "Икона сопротивления" ? "Строитель" : c.role;
@@ -170,7 +165,7 @@
         return `
           <div class="chat-block">
             <div class="chat-block__head">
-              <strong>${c.randomCipher || c.cipher} · ${role}</strong> <small>(${c.alibiProfession || '—'})</small>
+              <strong>${c.randomCipher || c.cipher} · ${role}</strong>
             </div>
             <div class="chat__log" style="max-height:200px; overflow-y:auto; margin-bottom:10px;">
               ${msgsHtml}
@@ -195,14 +190,13 @@
       loadData();
     }
 
-    // --- ОТРИСОВКА ГОЛОСОВАНИЯ ---
     async function renderVotes() {
       const votesListEl = document.getElementById('votes-list');
       if (!votesListEl) return;
       
       try {
         const r = await fetch('/api/votes');
-        if (!r.ok) throw new Error('Сеть');
+        if (!r.ok) throw new Error();
         const votesData = await r.json();
         
         if (!cardsData || cardsData.length === 0) {
@@ -231,7 +225,6 @@
       }
     }
 
-    // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
     async function saveGlobalNotes() {
       const text = document.getElementById('global-notes').value;
       await fetch(`/api/state/global_notes`, {
@@ -290,9 +283,8 @@
       renderVotes();
     };
 
-    // --- ЗАПУСК ---
+    // При запуске сразу загружаем данные один раз (без интервала!)
     loadData();
-    setInterval(loadData, 5000); // Обновляем реже (раз в 5 сек), чтобы не вешать браузер
   </script>
 </body>
 </html>
