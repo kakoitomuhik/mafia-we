@@ -12,12 +12,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 let state = {}; 
 let chat = {}; 
 let votes = {}; 
-let usedTokens = {}; 
 let currentNight = 1;
 let currentMode = 10; 
 let gameCards = null;
 let isVotingOpen = false;
-let isMassacreActive = false;
+let isMassacreActive = false; 
 
 const PROFESSIONS = [
   "Инженер", "Архитектор", "Учитель", "Бухгалтер", 
@@ -26,20 +25,6 @@ const PROFESSIONS = [
 ];
 
 const CIPHER_LETTERS = ["А", "Б", "В", "Г", "Д", "Е", "Ж", "З", "И", "К", "Л", "М", "Н", "П", "Р", "С", "Т", "Ф"];
-
-// СЛОВАРЬ КАРТИНОК (все твои новые файлы)
-const IMAGES = {
-  "true_numer_m": "01a1a425-a8dd-72d6-8da4-465b8e72eba8.jpg",
-  "true_numer_f": "01a1a428-a657-74ac-b124-098eebcbfebc (1).jpg",
-  "cultist_m": "01a1a44d-a290-7143-91d8-23e925198ecc.jpg",
-  "cultist_f": "01a1a44a-9206-7d07-8501-11d84f3c1f48.jpg",
-  "order_m": "01a1a460-c164-7efc-b058-e4b9ad86255c.jpg",
-  "order_f": "Polish_20261104_052337346.jpg",
-  "archivist_m": "01a1a458-e770-74c0-b7c2-5f46367339e6.jpg",
-  "archivist_f": "01a1a459-f956-7062-9d07-f9c1cab27a50.jpg",
-  "dissident2_m": "01a1a438-9f59-70f0-a68a-e9828fe1f144.jpg",
-  "dissident2_f": "Polish_20261104_045710421.jpg"
-};
 
 const GOALS = [
   { img: "poet", name: "Поэт", nameF: "Поэтесса", task: "Расскажи историю, которую оценят 3 человека.", quote: "Я говорю — и стекло трещит." },
@@ -52,6 +37,19 @@ const GOALS = [
   { img: "order", name: "Порядок", nameF: "Порядок", task: "Сделай минимум 2 замечания тем, кто перебивает других во время обсуждения.", quote: "Хаос начинается с перебивания. Я не позволю Интегралу пасть из-за вашей неэффективности." },
   { img: "archivist", name: "Архивариус", nameF: "Архивариус", task: "Узнай и запомни три факта о других игроках. Назови их ведущему в конце игры.", quote: "Я собираю то, что Система пытается стереть. Ваши страхи — это единственное, что осталось настоящим." }
 ];
+
+const IMAGES = {
+  "true_numer_m": "01a1a425-a8dd-72d6-8da4-465b8e72eba8.jpg",
+  "true_numer_f": "01a1a428-a657-74ac-b124-098eebcbfebc (1).jpg",
+  "cultist_m": "01a1a44d-a290-7143-91d8-23e925198ecc.jpg",
+  "cultist_f": "01a1a44a-9206-7d07-8501-11d84f3c1f48.jpg",
+  "order_m": "01a1a460-c164-7efc-b058-e4b9ad86255c.jpg",
+  "order_f": "Polish_20261104_052337346.jpg",
+  "archivist_m": "01a1a458-e770-74c0-b7c2-5f46367339e6.jpg",
+  "archivist_f": "01a1a459-f956-7062-9d07-f9c1cab27a50.jpg",
+  "dissident2_m": "01a1a438-9f59-70f0-a68a-e9828fe1f144.jpg",
+  "dissident2_f": "Polish_20261104_045710421.jpg"
+};
 
 function shuffle(array) {
   let currentIndex = array.length, randomIndex;
@@ -90,7 +88,7 @@ function getCardsWithProfessions() {
     if (card.role === "Строитель") {
       const goal = shuffledGoals[goalIndex % shuffledGoals.length];
       goalIndex++;
-      card.imageKey = goal.img; // Сохраняем ключ картинки
+      card.imageKey = goal.img;
       card.quote = goal.quote;
       card.goalName = goal.name;
       card.goalNameF = goal.nameF;
@@ -114,16 +112,8 @@ function getCardsWithProfessions() {
   return gameCards;
 }
 
+// ОГРАНИЧЕНИЕ НА 1 УСТРОЙСТВО СНЯТО
 app.get('/api/cards', (req, res) => {
-  const token = req.query.t;
-  const deviceId = req.query.device;
-
-  if (token && deviceId) {
-    if (usedTokens[token] && usedTokens[token] !== deviceId) {
-      return res.status(403).json({ error: 'used' });
-    }
-    usedTokens[token] = deviceId;
-  }
   res.json(getCardsWithProfessions());
 });
 
@@ -198,7 +188,7 @@ app.post('/api/next-night', (_, res) => {
 });
 
 app.post('/api/reset', (_, res) => {
-  state = {}; chat = {}; votes = {}; usedTokens = {}; currentNight = 1;
+  state = {}; chat = {}; votes = {}; currentNight = 1;
   isVotingOpen = false;
   isMassacreActive = false;
   gameCards = null; 
