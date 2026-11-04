@@ -17,6 +17,7 @@ let currentNight = 1;
 let currentMode = 10; 
 let gameCards = null;
 let isVotingOpen = false;
+let isMassacreActive = false; // <--- НОВАЯ ПЕРЕМЕННАЯ
 
 const PROFESSIONS = [
   "Инженер", "Архитектор", "Учитель", "Бухгалтер", 
@@ -125,7 +126,14 @@ app.get('/api/cards', (req, res) => {
   res.json(getCardsWithProfessions());
 });
 
-app.get('/api/state', (_, res) => res.json({ cards: state, night: currentNight, mode: currentMode }));
+// ОТДАЕМ СТАТУС РЕЗНИ В STATE
+app.get('/api/state', (_, res) => res.json({ 
+  cards: state, 
+  night: currentNight, 
+  mode: currentMode,
+  isMassacre: isMassacreActive 
+}));
+
 app.post('/api/state/:id', (req, res) => {
   const id = req.params.id;
   state[id] = { ...(state[id] || {}), ...req.body };
@@ -182,27 +190,26 @@ app.post('/api/set-mode', (req, res) => {
   res.json({ mode: currentMode });
 });
 
-// ЛОГИКА РЕЗНИ
 app.post('/api/next-night', (_, res) => {
   currentNight++;
   
-  let isMassacre = false;
   if (currentMode >= 15 && currentNight === 3) {
     const maifaAlive = getCardsWithProfessions().filter(c => 
       (c.role === "Диссидент" || c.role === "Лидер сопротивления") && !(state[c.id] || {}).dead
     );
     const requiredMaifa = currentMode === 15 ? 3 : 4;
     if (maifaAlive.length >= requiredMaifa) {
-      isMassacre = true;
+      isMassacreActive = true;
     }
   }
 
-  res.json({ night: currentNight, isMassacre });
+  res.json({ night: currentNight, isMassacre: isMassacreActive });
 });
 
 app.post('/api/reset', (_, res) => {
   state = {}; chat = {}; votes = {}; usedTokens = {}; currentNight = 1;
   isVotingOpen = false;
+  isMassacreActive = false; // СБРАСЫВАЕМ РЕЗНЮ
   gameCards = null; 
   res.json({ ok: true });
 });
