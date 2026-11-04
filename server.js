@@ -17,7 +17,7 @@ let currentNight = 1;
 let currentMode = 10; 
 let gameCards = null;
 let isVotingOpen = false;
-let isMassacreActive = false; // <--- НОВАЯ ПЕРЕМЕННАЯ
+let isMassacreActive = false;
 
 const PROFESSIONS = [
   "Инженер", "Архитектор", "Учитель", "Бухгалтер", 
@@ -27,18 +27,7 @@ const PROFESSIONS = [
 
 const CIPHER_LETTERS = ["А", "Б", "В", "Г", "Д", "Е", "Ж", "З", "И", "К", "Л", "М", "Н", "П", "Р", "С", "Т", "Ф"];
 
-const GOALS = [
-  { img: "poet", name: "Поэт", nameF: "Поэтесса", task: "Расскажи историю, которую оценят 3 человека.", quote: "Я говорю — и стекло трещит." },
-  { img: "citizen", name: "Порядочный нумер", nameF: "Порядочная нумер", task: "Ни разу не быть выбранным на голосование.", quote: "Чтобы выжить в стеклянном доме — стань стеклом." },
-  { img: "lawyer", name: "Юрист", nameF: "Юристка", task: "Оправдай того, на кого все думают.", quote: "Люди пишут правила. Люди ошибаются." },
-  { img: "pacifist", name: "Пацифист", nameF: "Пацифистка", task: "Сделай так, чтобы люди не голосовали хотя бы один раз.", quote: "Любовь важнее закона." },
-  { img: "propagandist", name: "Агитатор", nameF: "Агитаторша", task: "Сделай так, чтобы за того, кого ты выбрал, проголосовало большинство.", quote: "Толпа — механизм. Найди рычаг." },
-  { img: "true_numer", name: "Истинный нумер", nameF: "Истинная нумер", task: "Ты должен проголосовать против того, кто тебе симпатичен. Объясни это логически.", quote: "Я помню, что ты мне нравился. Но Система права: ты — ошибка." },
-  { img: "cultist", name: "Культист Интеграла", nameF: "Культистка Интеграла", task: "Добейся, чтобы в первый же день казнили любого нумера. Поддержи это решение публично.", quote: "Смерть — это не конец. Это оптимизация. Я приношу её во имя Интеграла." },
-  { img: "order", name: "Порядок", nameF: "Порядок", task: "Сделай минимум 2 замечания тем, кто перебивает других во время обсуждения.", quote: "Хаос начинается с перебивания. Я не позволю Интегралу пасть из-за вашей неэффективности." },
-  { img: "archivist", name: "Архивариус", nameF: "Архивариус", task: "Узнай и запомни три факта о других игроках. Назови их ведущему в конце игры.", quote: "Я собираю то, что Система пытается стереть. Ваши страхи — это единственное, что осталось настоящим." }
-];
-
+// СЛОВАРЬ КАРТИНОК (все твои новые файлы)
 const IMAGES = {
   "true_numer_m": "01a1a425-a8dd-72d6-8da4-465b8e72eba8.jpg",
   "true_numer_f": "01a1a428-a657-74ac-b124-098eebcbfebc (1).jpg",
@@ -51,6 +40,18 @@ const IMAGES = {
   "dissident2_m": "01a1a438-9f59-70f0-a68a-e9828fe1f144.jpg",
   "dissident2_f": "Polish_20261104_045710421.jpg"
 };
+
+const GOALS = [
+  { img: "poet", name: "Поэт", nameF: "Поэтесса", task: "Расскажи историю, которую оценят 3 человека.", quote: "Я говорю — и стекло трещит." },
+  { img: "citizen", name: "Порядочный нумер", nameF: "Порядочная нумер", task: "Ни разу не быть выбранным на голосование.", quote: "Чтобы выжить в стеклянном доме — стань стеклом." },
+  { img: "lawyer", name: "Юрист", nameF: "Юристка", task: "Оправдай того, на кого все думают.", quote: "Люди пишут правила. Люди ошибаются." },
+  { img: "pacifist", name: "Пацифист", nameF: "Пацифистка", task: "Сделай так, чтобы люди не голосовали хотя бы один раз.", quote: "Любовь важнее закона." },
+  { img: "propagandist", name: "Агитатор", nameF: "Агитаторша", task: "Сделай так, чтобы за того, кого ты выбрал, проголосовало большинство.", quote: "Толпа — механизм. Найди рычаг." },
+  { img: "true_numer", name: "Истинный нумер", nameF: "Истинная нумер", task: "Ты должен проголосовать против того, кто тебе симпатичен. Объясни это логически.", quote: "Я помню, что ты мне нравился. Но Система права: ты — ошибка." },
+  { img: "cultist", name: "Культист Интеграла", nameF: "Культистка Интеграла", task: "Добейся, чтобы в первый же день казнили любого нумера. Поддержи это решение публично.", quote: "Смерть — это не конец. Это оптимизация. Я приношу её во имя Интеграла." },
+  { img: "order", name: "Порядок", nameF: "Порядок", task: "Сделай минимум 2 замечания тем, кто перебивает других во время обсуждения.", quote: "Хаос начинается с перебивания. Я не позволю Интегралу пасть из-за вашей неэффективности." },
+  { img: "archivist", name: "Архивариус", nameF: "Архивариус", task: "Узнай и запомни три факта о других игроках. Назови их ведущему в конце игры.", quote: "Я собираю то, что Система пытается стереть. Ваши страхи — это единственное, что осталось настоящим." }
+];
 
 function shuffle(array) {
   let currentIndex = array.length, randomIndex;
@@ -89,13 +90,13 @@ function getCardsWithProfessions() {
     if (card.role === "Строитель") {
       const goal = shuffledGoals[goalIndex % shuffledGoals.length];
       goalIndex++;
-      card.image = goal.img;
+      card.imageKey = goal.img; // Сохраняем ключ картинки
       card.quote = goal.quote;
       card.goalName = goal.name;
       card.goalNameF = goal.nameF;
       card.quest = goal.task;
     } else if (card.role === "Икона сопротивления") {
-      card.image = "icon";
+      card.imageKey = "icon";
       card.quote = "Я — цитата, которую повторят после меня.";
       card.goalName = "«Икона сопротивления»";
       card.goalNameF = "«Икона сопротивления»";
@@ -126,14 +127,7 @@ app.get('/api/cards', (req, res) => {
   res.json(getCardsWithProfessions());
 });
 
-// ОТДАЕМ СТАТУС РЕЗНИ В STATE
-app.get('/api/state', (_, res) => res.json({ 
-  cards: state, 
-  night: currentNight, 
-  mode: currentMode,
-  isMassacre: isMassacreActive 
-}));
-
+app.get('/api/state', (_, res) => res.json({ cards: state, night: currentNight, mode: currentMode, isMassacre: isMassacreActive }));
 app.post('/api/state/:id', (req, res) => {
   const id = req.params.id;
   state[id] = { ...(state[id] || {}), ...req.body };
@@ -142,10 +136,7 @@ app.post('/api/state/:id', (req, res) => {
 
 app.get('/api/chat', (_, res) => {
   const summary = getCardsWithProfessions().map(c => ({
-    token: c.token, 
-    cipher: c.randomCipher || c.cipher, 
-    role: c.role, 
-    alibiProfession: c.alibiProfession,
+    token: c.token, cipher: c.randomCipher || c.cipher, role: c.role, alibiProfession: c.alibiProfession,
     messages: chat[c.token] || []
   }));
   res.json(summary);
@@ -209,7 +200,7 @@ app.post('/api/next-night', (_, res) => {
 app.post('/api/reset', (_, res) => {
   state = {}; chat = {}; votes = {}; usedTokens = {}; currentNight = 1;
   isVotingOpen = false;
-  isMassacreActive = false; // СБРАСЫВАЕМ РЕЗНЮ
+  isMassacreActive = false;
   gameCards = null; 
   res.json({ ok: true });
 });
