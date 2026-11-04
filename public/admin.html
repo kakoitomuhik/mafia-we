@@ -63,7 +63,7 @@
     const modeSelect = document.getElementById('mode-select');
     
     let cardsData = [];
-    let stateData = { cards: {}, night: 1, mode: 10 };
+    let stateData = { cards: {}, night: 1, mode: 10, isMassacre: false };
     let chatData = [];
     let votesData = {};
     let lastChatJSON = '';
@@ -280,7 +280,6 @@
       loadData();
     };
 
-    // НОВАЯ ЛОГИКА ДЛЯ КНОПКИ НОЧИ
     document.getElementById('next-night').onclick = async () => {
       const res = await fetch('/api/next-night', { method: 'POST' });
       const data = await res.json();
