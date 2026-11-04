@@ -33,7 +33,7 @@
       localStorage.setItem('device_id', deviceId);
     }
 
-    // Копия словаря картинок для фронтенда
+    // Словарь с твоими новыми картинками
     const IMAGES = {
       "true_numer_m": "01a1a425-a8dd-72d6-8da4-465b8e72eba8.jpg",
       "true_numer_f": "01a1a428-a657-74ac-b124-098eebcbfebc (1).jpg",
@@ -278,6 +278,7 @@
               <div class="card__role">${displayRole}</div>
               <div class="card__side ${sideClass}">${sideText}</div>
               
+              <!-- ПЛАШКА РЕЗНИ -->
               ${stateData.isMassacre && (card.role === "Диссидент" || card.role === "Лидер сопротивления") ? `
                 <div style="margin-top: 10px; padding: 10px; background: rgba(255,0,0,0.2); border: 2px solid #ff0000; border-radius: 8px; text-align: center; color: #ff5252; font-weight: bold; font-size: 14px; animation: pulse 1s infinite;">
                   🩸 РЕЗНЯ АКТИВНА. Выберите ДВУХ жертв и напишите их ведущему.
@@ -339,14 +340,24 @@
         </div>
       `;
 
+      // --- ИСПРАВЛЕННАЯ ЛОГИКА ЗАГРУЗКИ КАРТИНКИ ---
       if (card.imageKey) {
         const imgEl = document.getElementById('portrait-img');
         if (imgEl) {
           const genderSuffix = isFemale ? '_f' : '_m';
           const key = card.imageKey + genderSuffix;
-          // Ищем в словаре IMAGES, если нет — используем старый шаблон
           const fileName = IMAGES[key] || `${card.imageKey}${genderSuffix}.png`;
+          
           imgEl.src = `/${fileName}`;
+          
+          // Если картинка не загрузилась, выводим текст с именем файла
+          imgEl.onerror = function() {
+            this.style.display = 'none';
+            const parent = this.parentElement;
+            if (parent) {
+              parent.innerHTML = `<div style="color: #ff5252; font-size: 12px; text-align: center; padding: 10px; background: rgba(0,0,0,0.5); border-radius: 8px; word-break: break-all;">Ошибка загрузки<br>Ищу файл:<br><b>${fileName}</b></div>`;
+            }
+          };
         }
       }
 
