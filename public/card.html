@@ -33,6 +33,20 @@
       localStorage.setItem('device_id', deviceId);
     }
 
+    // Копия словаря картинок для фронтенда
+    const IMAGES = {
+      "true_numer_m": "01a1a425-a8dd-72d6-8da4-465b8e72eba8.jpg",
+      "true_numer_f": "01a1a428-a657-74ac-b124-098eebcbfebc (1).jpg",
+      "cultist_m": "01a1a44d-a290-7143-91d8-23e925198ecc.jpg",
+      "cultist_f": "01a1a44a-9206-7d07-8501-11d84f3c1f48.jpg",
+      "order_m": "01a1a460-c164-7efc-b058-e4b9ad86255c.jpg",
+      "order_f": "Polish_20261104_052337346.jpg",
+      "archivist_m": "01a1a458-e770-74c0-b7c2-5f46367339e6.jpg",
+      "archivist_f": "01a1a459-f956-7062-9d07-f9c1cab27a50.jpg",
+      "dissident2_m": "01a1a438-9f59-70f0-a68a-e9828fe1f144.jpg",
+      "dissident2_f": "Polish_20261104_045710421.jpg"
+    };
+
     if (!token) {
       app.innerHTML = '<p style="color:#889; padding: 20px; text-align:center; font-size: 18px;">Токен не найден.</p>';
     } else {
@@ -264,7 +278,6 @@
               <div class="card__role">${displayRole}</div>
               <div class="card__side ${sideClass}">${sideText}</div>
               
-              <!-- ПЛАШКА РЕЗНИ -->
               ${stateData.isMassacre && (card.role === "Диссидент" || card.role === "Лидер сопротивления") ? `
                 <div style="margin-top: 10px; padding: 10px; background: rgba(255,0,0,0.2); border: 2px solid #ff0000; border-radius: 8px; text-align: center; color: #ff5252; font-weight: bold; font-size: 14px; animation: pulse 1s infinite;">
                   🩸 РЕЗНЯ АКТИВНА. Выберите ДВУХ жертв и напишите их ведущему.
@@ -326,11 +339,14 @@
         </div>
       `;
 
-      if (card.image) {
+      if (card.imageKey) {
         const imgEl = document.getElementById('portrait-img');
         if (imgEl) {
           const genderSuffix = isFemale ? '_f' : '_m';
-          imgEl.src = `/${card.image}${genderSuffix}.png`;
+          const key = card.imageKey + genderSuffix;
+          // Ищем в словаре IMAGES, если нет — используем старый шаблон
+          const fileName = IMAGES[key] || `${card.imageKey}${genderSuffix}.png`;
+          imgEl.src = `/${fileName}`;
         }
       }
 
