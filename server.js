@@ -32,12 +32,15 @@ const GOALS = [
   { img: "lawyer", name: "Юрист", nameF: "Юристка", task: "Оправдай того, на кого все думают.", quote: "Люди пишут правила. Люди ошибаются." },
   { img: "pacifist", name: "Пацифист", nameF: "Пацифистка", task: "Сделай так, чтобы люди не голосовали хотя бы один раз.", quote: "Любовь важнее закона." },
   { img: "propagandist", name: "Агитатор", nameF: "Агитаторша", task: "Сделай так, чтобы за того, кого ты выбрал, проголосовало большинство.", quote: "Толпа — механизм. Найди рычаг." },
+  
+  // НОВЫЕ ЦЕЛИ (словарь картинок ниже)
   { img: "true_numer", name: "Истинный нумер", nameF: "Истинная нумер", task: "Ты должен проголосовать против того, кто тебе симпатичен. Объясни это логически.", quote: "Я помню, что ты мне нравился. Но Система права: ты — ошибка." },
   { img: "cultist", name: "Культист Интеграла", nameF: "Культистка Интеграла", task: "Добейся, чтобы в первый же день казнили любого нумера. Поддержи это решение публично.", quote: "Смерть — это не конец. Это оптимизация. Я приношу её во имя Интеграла." },
   { img: "order", name: "Порядок", nameF: "Порядок", task: "Сделай минимум 2 замечания тем, кто перебивает других во время обсуждения.", quote: "Хаос начинается с перебивания. Я не позволю Интегралу пасть из-за вашей неэффективности." },
   { img: "archivist", name: "Архивариус", nameF: "Архивариус", task: "Узнай и запомни три факта о других игроках. Назови их ведущему в конце игры.", quote: "Я собираю то, что Система пытается стереть. Ваши страхи — это единственное, что осталось настоящим." }
 ];
 
+// СЛОВАРЬ ТВОИХ КАРТИНОК
 const IMAGES = {
   "true_numer_m": "01a1a425-a8dd-72d6-8da4-465b8e72eba8.jpg",
   "true_numer_f": "01a1a428-a657-74ac-b124-098eebcbfebc (1).jpg",
@@ -67,9 +70,12 @@ function getCardsWithProfessions() {
   let allCards = JSON.parse(fs.readFileSync(CARDS_FILE, 'utf8'));
   let selectedCards = [];
   
-  if (currentMode === 10) selectedCards = allCards.filter(c => c.id <= 10); 
-  else if (currentMode === 15) selectedCards = allCards.slice(0, 15);
-  else selectedCards = allCards.slice(0, 20);
+  // ЛОГИКА РЕЖИМОВ: 10 - базовая, 15 - с расширением
+  if (currentMode === 10) {
+    selectedCards = allCards.filter(c => c.id <= 10); 
+  } else {
+    selectedCards = allCards.slice(0, 15);
+  }
 
   const shuffledProfs = shuffle([...PROFESSIONS]);
   const shuffledLetters = shuffle([...CIPHER_LETTERS]);
