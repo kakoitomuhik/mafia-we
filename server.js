@@ -32,8 +32,6 @@ const GOALS = {
   3: { img: "lawyer", name: "Юрист", nameF: "Юристка", task: "Оправдай того, на кого все думают.", quote: "Люди пишут правила. Люди ошибаются." },
   4: { img: "pacifist", name: "Пацифист", nameF: "Пацифистка", task: "Сделай так, чтобы люди не голосовали хотя бы один раз.", quote: "Любовь важнее закона." },
   5: { img: "propagandist", name: "Агитатор", nameF: "Агитаторша", task: "Сделай так, чтобы за того, кого ты выбрал, проголосовало большинство.", quote: "Толпа — механизм. Найди рычаг." },
-  
-  // Жесткая привязка новых целей к ID карт
   11: { img: "true_numer", name: "Истинный нумер", nameF: "Истинная нумер", task: "Ты должен проголосовать против того, кто тебе симпатичен. Объясни это логически.", quote: "Я помню, что ты мне нравился. Но Система права: ты — ошибка." },
   12: { img: "cultist", name: "Культист Интеграла", nameF: "Культистка Интеграла", task: "Добейся, чтобы в первый же день казнили любого нумера. Поддержи это решение публично.", quote: "Смерть — это не конец. Это оптимизация. Я приношу её во имя Интеграла." },
   13: { img: "order", name: "Порядок", nameF: "Порядок", task: "Сделай минимум 2 замечания тем, кто перебивает других во время обсуждения.", quote: "Хаос начинается с перебивания. Я не позволю Интегралу пасть из-за вашей неэффективности." },
@@ -84,7 +82,6 @@ function getCardsWithProfessions() {
     const number = Math.floor(Math.random() * 999) + 1;
     card.randomCipher = `${letter}-${number}`;
     
-    // Если это Строитель и для его ID есть цель — выдаем её
     if (card.role === "Строитель" && GOALS[card.id]) {
       const goal = GOALS[card.id];
       card.imageKey = goal.img;
@@ -99,7 +96,7 @@ function getCardsWithProfessions() {
       card.goalNameF = "«Икона сопротивления»";
       card.quest = "Умереть на голосовании. Очков за твою смерть не получает никто.";
     } else if (card.role === "Диссидент") {
-      card.imageKey = "dissident2"; // Для второго диссидента
+      card.imageKey = "dissident2";
     } else if (card.role === "Лидер сопротивления") {
       card.imageKey = "leader";
     } else if (card.role === "Врач") {
@@ -119,86 +116,59 @@ function getCardsWithProfessions() {
   return gameCards;
 }
 
-app.get('/api/cards', (req, res) => {
-  res.json(getCardsWithProfessions());
-});
-
+app.get('/api/cards', (req, res) => res.json(getCardsWithProfessions()));
 app.get('/api/state', (_, res) => res.json({ cards: state, night: currentNight, mode: currentMode, isMassacre: isMassacreActive }));
 app.post('/api/state/:id', (req, res) => {
-  const id = req.params.id;
-  state[id] = { ...(state[id] || {}), ...req.body };
-  res.json(state[id]);
+  state[req.params.id] = { ...(state[req.params.id] || {}), ...req.body };
+  res.json(state[req.params.id]);
 });
 
 app.get('/api/chat', (_, res) => {
-  const summary = getCardsWithProfessions().map(c => ({
+  res.json(getCardsWithProfessions().map(c => ({
     token: c.token, cipher: c.randomCipher || c.cipher, role: c.role, alibiProfession: c.alibiProfession,
     messages: chat[c.token] || []
-  }));
-  res.json(summary);
+  })));
 });
-
 app.get('/api/chat/:token', (req, res) => res.json(chat[req.params.token] || []));
 app.post('/api/chat/:token', (req, res) => {
   const text = (req.body.text || '').trim();
   if (!text) return res.status(400).json({ error: 'empty' });
-  const t = req.params.token;
-  (chat[t] = chat[t] || []).push({ from: 'player', text, ts: Date.now() });
+  (chat[req.params.token] = chat[req.params.token] || []).push({ from: 'player', text, ts: Date.now() });
   res.json({ ok: true });
 });
 app.post('/api/chat/:token/reply', (req, res) => {
   const text = (req.body.text || '').trim();
   if (!text) return res.status(400).json({ error: 'empty' });
-  const t = req.params.token;
-  (chat[t] = chat[t] || []).push({ from: 'admin', text, ts: Date.now() });
+  (chat[req.params.token] = chat[req.params.token] || []).push({ from: 'admin', text, ts: Date.now() });
   res.json({ ok: true });
 });
 
 app.get('/api/votes', (_, res) => res.json(votes));
 app.post('/api/vote', (req, res) => {
-  const { voterId, targetId } = req.body;
-  if (voterId) votes[voterId] = targetId;
+  if (req.body.voterId) votes[req.body.voterId] = req.body.targetId;
   res.json({ ok: true, votes });
 });
-app.post('/api/reset-votes', (_, res) => {
-  votes = {};
-  res.json({ ok: true });
-});
+app.post('/api/reset-votes', (_, res) => { votes = {}; res.json({ ok: true }); });
 
 app.get('/api/voting-status', (_, res) => res.json({ isVotingOpen }));
-app.post('/api/voting-status', (req, res) => {
-  isVotingOpen = req.body.isVotingOpen;
-  res.json({ isVotingOpen });
-});
+app.post('/api/voting-status', (req, res) => { isVotingOpen = req.body.isVotingOpen; res.json({ isVotingOpen }); });
 
-app.post('/api/set-mode', (req, res) => {
-  currentMode = req.body.mode;
-  gameCards = null; 
-  res.json({ mode: currentMode });
-});
+app.post('/api/set-mode', (req, res) => { currentMode = req.body.mode; gameCards = null; res.json({ mode: currentMode }); });
 
 app.post('/api/next-night', (_, res) => {
   currentNight++;
-  
   if (currentMode >= 15 && currentNight === 3) {
     const maifaAlive = getCardsWithProfessions().filter(c => 
       (c.role === "Диссидент" || c.role === "Лидер сопротивления") && !(state[c.id] || {}).dead
     );
-    const requiredMaifa = currentMode === 15 ? 3 : 4;
-    if (maifaAlive.length >= requiredMaifa) {
-      isMassacreActive = true;
-    }
+    if (maifaAlive.length >= (currentMode === 15 ? 3 : 4)) isMassacreActive = true;
   }
-
   res.json({ night: currentNight, isMassacre: isMassacreActive });
 });
 
 app.post('/api/reset', (_, res) => {
-  state = {}; chat = {}; votes = {}; currentNight = 1;
-  isVotingOpen = false;
-  isMassacreActive = false;
-  gameCards = null; 
+  state = {}; chat = {}; votes = {}; currentNight = 1; isVotingOpen = false; isMassacreActive = false; gameCards = null; 
   res.json({ ok: true });
 });
 
-app.listen(PORT, '0.0.0.0', () => console.log(`▶  Server running on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
