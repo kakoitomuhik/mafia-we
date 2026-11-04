@@ -33,7 +33,6 @@
       localStorage.setItem('device_id', deviceId);
     }
 
-    // Словарь с твоими новыми картинками
     const IMAGES = {
       "true_numer_m": "01a1a425-a8dd-72d6-8da4-465b8e72eba8.jpg",
       "true_numer_f": "01a1a428-a657-74ac-b124-098eebcbfebc (1).jpg",
@@ -267,6 +266,18 @@
         `;
       }
 
+      // СЧЕТЧИК ДО РЕЗНИ
+      let massacreCounter = "";
+      if (stateData.mode >= 15) {
+        if (stateData.night < 3) {
+          massacreCounter = `До резни: ${3 - stateData.night} ноч.`;
+        } else if (stateData.night >= 3 && !stateData.isMassacre) {
+          massacreCounter = `Резня: не состоялась`;
+        } else if (stateData.isMassacre) {
+          massacreCounter = `🩸 РЕЗНЯ АКТИВНА`;
+        }
+      }
+
       app.innerHTML = `
         <div class="card ${st.dead ? 'card--dead' : ''}">
           <div class="card-inner">
@@ -278,10 +289,10 @@
               <div class="card__role">${displayRole}</div>
               <div class="card__side ${sideClass}">${sideText}</div>
               
-              <!-- ПЛАШКА РЕЗНИ -->
+              <!-- ПЛАШКА РЕЗНИ ДЛЯ МАФИИ -->
               ${stateData.isMassacre && (card.role === "Диссидент" || card.role === "Лидер сопротивления") ? `
                 <div style="margin-top: 10px; padding: 10px; background: rgba(255,0,0,0.2); border: 2px solid #ff0000; border-radius: 8px; text-align: center; color: #ff5252; font-weight: bold; font-size: 14px; animation: pulse 1s infinite;">
-                  🩸 РЕЗНЯ АКТИВНА. Выберите ДВУХ жертв и напишите их ведущему.
+                  🩸 РЕЗНЯ: Выберите ДВУХ жертв.
                 </div>
               ` : ''}
 
@@ -333,14 +344,19 @@
               <button onclick="resetGender()" style="background:none; border:none; color:#55617a; font-size:12px; cursor:pointer; text-decoration: underline;">Сменить пол</button>
             </div>
 
-            <div style="text-align: right; font-size: 10px; color: #445; margin-top: 10px; letter-spacing: 1px;">
-              Е. Замятин · «Мы»
+            <!-- НИЗ КАРТЫ: СЧЕТЧИК И АВТОР -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+              <div style="font-size: 11px; color: #ffd47a; font-weight: bold;">
+                ${massacreCounter}
+              </div>
+              <div style="font-size: 10px; color: #445; letter-spacing: 1px;">
+                Е. Замятин · «Мы»
+              </div>
             </div>
           </div>
         </div>
       `;
 
-      // --- ИСПРАВЛЕННАЯ ЛОГИКА ЗАГРУЗКИ КАРТИНКИ ---
       if (card.imageKey) {
         const imgEl = document.getElementById('portrait-img');
         if (imgEl) {
@@ -350,7 +366,6 @@
           
           imgEl.src = `/${fileName}`;
           
-          // Если картинка не загрузилась, выводим текст с именем файла
           imgEl.onerror = function() {
             this.style.display = 'none';
             const parent = this.parentElement;
