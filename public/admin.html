@@ -17,7 +17,6 @@
       <button class="tab" id="btn-notes" onclick="showTab('notes')">Заметки</button>
     </div>
     
-    <!-- Вкладка Игроки -->
     <div id="tab-players" class="tab-panel active">
       <div class="mode-control">
         <label>Режим игры:</label>
@@ -29,18 +28,18 @@
         <button id="next-night" class="btn-ghost" style="border-color: #4a7fff; color: #4a7fff; margin: 0;">Следующая ночь 🌙</button>
         <button id="toggle-vote" class="btn-ghost" style="border-color: #ffd47a; color: #ffd47a; margin: 0;">Открыть голосование</button>
       </div>
+
       <div id="list" class="admin__list">Загрузка...</div>
+      
       <div class="control-buttons">
         <button id="reset" class="btn-ghost danger">Сбросить игру</button>
       </div>
     </div>
     
-    <!-- Вкладка Вопросы -->
     <div id="tab-chats" class="tab-panel hidden">
       <div id="chats" class="chats">Загрузка...</div>
     </div>
 
-    <!-- Вкладка Голосование -->
     <div id="tab-votes" class="tab-panel hidden">
       <div id="votes-list" class="admin__list">Загрузка...</div>
       <div class="control-buttons">
@@ -48,7 +47,6 @@
       </div>
     </div>
 
-    <!-- Вкладка Заметки -->
     <div id="tab-notes" class="tab-panel hidden">
       <div class="notes-block" style="max-width: 100%;">
         <textarea class="notes-textarea" id="global-notes" placeholder="Записывайте сюда всё..."></textarea>
@@ -58,14 +56,12 @@
   </div>
 
   <script>
-    // Элементы
     const listEl = document.getElementById('list');
     const chatsEl = document.getElementById('chats');
     const votesListEl = document.getElementById('votes-list');
     const globalNotesEl = document.getElementById('global-notes');
     const modeSelect = document.getElementById('mode-select');
     
-    // Данные
     let cardsData = [];
     let stateData = { cards: {}, night: 1, mode: 10 };
     let chatData = [];
@@ -73,26 +69,17 @@
     let lastChatJSON = '';
     let votingStatus = false;
 
-    // 1. ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК (просто и надежно)
     function showTab(tabName) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab--active'));
-      document.querySelectorAll('.tab-panel').forEach(p => {
-        p.classList.remove('active');
-        p.classList.add('hidden');
-      });
-      
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
       document.getElementById('btn-' + tabName).classList.add('tab--active');
-      
-      const targetPanel = document.getElementById('tab-' + tabName);
-      targetPanel.classList.remove('hidden');
-      targetPanel.classList.add('active');
+      document.getElementById('tab-' + tabName).classList.remove('hidden');
       
       if (tabName === 'chats') renderChats();
       if (tabName === 'votes') renderVotes();
       if (tabName === 'notes') globalNotesEl.value = stateData['global_notes'] || "";
     }
 
-    // 2. ЗАГРУЗКА ДАННЫХ
     async function loadData() {
       try {
         const resCards = await fetch('/api/cards');
@@ -136,7 +123,6 @@
       }
     }
 
-    // 3. ОТРИСОВКА ИГРОКОВ
     function renderPlayers() {
       if (!cardsData || cardsData.length === 0) {
         listEl.innerHTML = '<span style="color:#889">Нет данных. Нажмите "Сбросить игру".</span>';
@@ -167,61 +153,11 @@
       }).join('');
     }
 
-    // 4. ОТРИСОВКА ЧАТА
-    function renderChats() {
-      if (!chatsEl) return;
-      const withMsgs = chatData.filter(c => c.messages && c.messages.length > 0);
-      if (withMsgs.length === 0) {
-        chatsEl.innerHTML = '<div style="color:#7a879e; padding:20px; text-align:center;">Пока никто не задал вопросов.</div>';
-        return;
-      }
-
-      chatsEl.innerHTML = withMsgs.map(c => {
-        const msgsHtml = c.messages.map(m => `
-          <div class="msg msg--${m.from}">
-            ${m.text}
-            <small>${new Date(m.ts).toLocaleTimeString('ru', {hour:'2-digit',minute:'2-digit'})}</small>
-          </div>
-        `).join('');
-
-        let chatDisplayRole = c.role === "Икона сопротивления" ? "Строитель" : c.role;
-
-        return `
-          <div class="chat-block">
-            <div class="chat-block__head">
-              <strong>${c.randomCipher || c.cipher} · ${chatDisplayRole}</strong> <small>(${c.alibiProfession || '—'})</small>
-            </div>
-            <div class="chat__log" style="max-height:200px; overflow-y:auto; margin-bottom:10px;">
-              ${msgsHtml}
-            </div>
-            <div class="chat__input">
-              <input type="text" id="reply-${c.token}" placeholder="Ответить..." />
-              <button onclick="sendReply('${c.token}')">Ответить</button>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    async function sendReply(token) {
-      const inp = document.getElementById('reply-' + token);
-      const text = inp.value.trim();
-      if (!text) return;
-      await fetch(`/api/chat/${token}/reply`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
-      });
-      loadData();
-    }
-
-    // 5. ОТРИСОВКА ГОЛОСОВАНИЯ
     async function renderVotes() {
       try {
-        const res = await fetch('/api/votes');
-        if (!res.ok) throw new Error('Ошибка загрузки');
-        votesData = await res.json();
-        
+        votesData = await (await fetch('/api/votes')).json();
         const allCards = cardsData;
+        
         if (!allCards || allCards.length === 0) {
           votesListEl.innerHTML = '<span style="color:#889">Нет данных.</span>';
           return;
@@ -254,12 +190,66 @@
           `;
         });
         votesListEl.innerHTML = html;
-      } catch(e) {
-        votesListEl.innerHTML = `<span style="color:red">Ошибка: ${e.message}</span>`;
+      } catch(e) {}
+    }
+
+    function renderChats() {
+      if (!chatsEl) return;
+      const withMsgs = chatData.filter(c => c.messages && c.messages.length > 0);
+      if (withMsgs.length === 0) {
+        chatsEl.innerHTML = '<div style="color:#7a879e; padding:20px; text-align:center;">Пока никто не задал вопросов.</div>';
+        return;
+      }
+
+      const activeElement = document.activeElement;
+      const isTyping = activeElement && activeElement.tagName === 'INPUT';
+      const typingId = isTyping ? activeElement.id : null;
+      const typingValue = isTyping ? activeElement.value : '';
+
+      chatsEl.innerHTML = withMsgs.map(c => {
+        const msgsHtml = c.messages.map(m => `
+          <div class="msg msg--${m.from}">
+            ${m.text}
+            <small>${new Date(m.ts).toLocaleTimeString('ru', {hour:'2-digit',minute:'2-digit'})}</small>
+          </div>
+        `).join('');
+
+        const inputValue = (typingId === `reply-${c.token}`) ? typingValue : '';
+        let chatDisplayRole = c.role === "Икона сопротивления" ? "Строитель" : c.role;
+
+        return `
+          <div class="chat-block">
+            <div class="chat-block__head">
+              <strong>${c.randomCipher || c.cipher} · ${chatDisplayRole}</strong> <small>(${c.alibiProfession || '—'})</small>
+            </div>
+            <div class="chat__log" style="max-height:200px; overflow-y:auto; margin-bottom:10px;">
+              ${msgsHtml}
+            </div>
+            <div class="chat__input">
+              <input type="text" id="reply-${c.token}" value="${inputValue}" placeholder="Ответить..." />
+              <button onclick="sendReply('${c.token}')">Ответить</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      if (isTyping && typingId) {
+        const el = document.getElementById(typingId);
+        if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
       }
     }
 
-    // Вспомогательные функции
+    async function sendReply(token) {
+      const inp = document.getElementById('reply-' + token);
+      const text = inp.value.trim();
+      if (!text) return;
+      await fetch(`/api/chat/${token}/reply`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      loadData();
+    }
+
     async function saveGlobalNotes() {
       const text = globalNotesEl.value;
       await fetch(`/api/state/global_notes`, {
@@ -290,8 +280,15 @@
       loadData();
     };
 
+    // НОВАЯ ЛОГИКА ДЛЯ КНОПКИ НОЧИ
     document.getElementById('next-night').onclick = async () => {
-      await fetch('/api/next-night', { method: 'POST' });
+      const res = await fetch('/api/next-night', { method: 'POST' });
+      const data = await res.json();
+      
+      if (data.isMassacre) {
+        alert("ВНИМАНИЕ! ТРЕТЬЯ НОЧЬ. Ни один мафиози не казнен. Сопротивление устраивает РЕЗНЮ! Они выбирают ДВУХ жертв.");
+      }
+      
       loadData();
     };
 
@@ -315,7 +312,6 @@
       renderVotes();
     };
 
-    // Запуск
     loadData();
     setInterval(loadData, 3000);
   </script>
