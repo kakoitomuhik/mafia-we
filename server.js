@@ -31,8 +31,25 @@ const GOALS = [
   { img: "citizen", name: "Порядочный нумер", nameF: "Порядочная нумер", task: "Ни разу не быть выбранным на голосование.", quote: "Чтобы выжить в стеклянном доме — стань стеклом." },
   { img: "lawyer", name: "Юрист", nameF: "Юристка", task: "Оправдай того, на кого все думают.", quote: "Люди пишут правила. Люди ошибаются." },
   { img: "pacifist", name: "Пацифист", nameF: "Пацифистка", task: "Сделай так, чтобы люди не голосовали хотя бы один раз.", quote: "Любовь важнее закона." },
-  { img: "propagandist", name: "Агитатор", nameF: "Агитаторша", task: "Сделай так, чтобы за того, кого ты выбрал, проголосовало большинство.", quote: "Толпа — механизм. Найди рычаг." }
+  { img: "propagandist", name: "Агитатор", nameF: "Агитаторша", task: "Сделай так, чтобы за того, кого ты выбрал, проголосовало большинство.", quote: "Толпа — механизм. Найди рычаг." },
+  { img: "true_numer", name: "Истинный нумер", nameF: "Истинная нумер", task: "Ты должен проголосовать против того, кто тебе симпатичен. Объясни это логически.", quote: "Я помню, что ты мне нравился. Но Система права: ты — ошибка." },
+  { img: "cultist", name: "Культист Интеграла", nameF: "Культистка Интеграла", task: "Добейся, чтобы в первый же день казнили любого нумера. Поддержи это решение публично.", quote: "Смерть — это не конец. Это оптимизация. Я приношу её во имя Интеграла." },
+  { img: "order", name: "Порядок", nameF: "Порядок", task: "Сделай минимум 2 замечания тем, кто перебивает других во время обсуждения.", quote: "Хаос начинается с перебивания. Я не позволю Интегралу пасть из-за вашей неэффективности." },
+  { img: "archivist", name: "Архивариус", nameF: "Архивариус", task: "Узнай и запомни три факта о других игроках. Назови их ведущему в конце игры.", quote: "Я собираю то, что Система пытается стереть. Ваши страхи — это единственное, что осталось настоящим." }
 ];
+
+const IMAGES = {
+  "true_numer_m": "01a1a425-a8dd-72d6-8da4-465b8e72eba8.jpg",
+  "true_numer_f": "01a1a428-a657-74ac-b124-098eebcbfebc (1).jpg",
+  "cultist_m": "01a1a44d-a290-7143-91d8-23e925198ecc.jpg",
+  "cultist_f": "01a1a44a-9206-7d07-8501-11d84f3c1f48.jpg",
+  "order_m": "01a1a460-c164-7efc-b058-e4b9ad86255c.jpg",
+  "order_f": "Polish_20261104_052337346.jpg",
+  "archivist_m": "01a1a458-e770-74c0-b7c2-5f46367339e6.jpg",
+  "archivist_f": "01a1a459-f956-7062-9d07-f9c1cab27a50.jpg",
+  "dissident2_m": "01a1a438-9f59-70f0-a68a-e9828fe1f144.jpg",
+  "dissident2_f": "Polish_20261104_045710421.jpg"
+};
 
 function shuffle(array) {
   let currentIndex = array.length, randomIndex;
@@ -113,7 +130,6 @@ app.post('/api/state/:id', (req, res) => {
   res.json(state[id]);
 });
 
-// --- ЧАТ ---
 app.get('/api/chat', (_, res) => {
   const summary = getCardsWithProfessions().map(c => ({
     token: c.token, 
@@ -140,7 +156,6 @@ app.post('/api/chat/:token/reply', (req, res) => {
   (chat[t] = chat[t] || []).push({ from: 'admin', text, ts: Date.now() });
   res.json({ ok: true });
 });
-// -----------
 
 app.get('/api/votes', (_, res) => res.json(votes));
 app.post('/api/vote', (req, res) => {
@@ -176,4 +191,4 @@ app.post('/api/reset', (_, res) => {
   res.json({ ok: true });
 });
 
-app.listen(PORT, () => console.log(`▶  http://localhost:${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`▶  Server running on port ${PORT}`));
