@@ -56,56 +56,44 @@
   </div>
 
   <script>
-    const listEl = document.getElementById('list');
-    const chatsEl = document.getElementById('chats');
-    const votesListEl = document.getElementById('votes-list');
-    const globalNotesEl = document.getElementById('global-notes');
-    const modeSelect = document.getElementById('mode-select');
-    
-    let cardsData = [];
-    let stateData = { cards: {}, night: 1, mode: 10, isMassacre: false };
-    let chatData = [];
-    let votesData = {};
-    let lastChatJSON = '';
-    let votingStatus = false;
-
+    // --- ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК ---
     function showTab(tabName) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab--active'));
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+      
       document.getElementById('btn-' + tabName).classList.add('tab--active');
       document.getElementById('tab-' + tabName).classList.remove('hidden');
       
       if (tabName === 'chats') renderChats();
       if (tabName === 'votes') renderVotes();
-      if (tabName === 'notes') globalNotesEl.value = stateData['global_notes'] || "";
+      if (tabName === 'notes') document.getElementById('global-notes').value = stateData['global_notes'] || "";
     }
+
+    // --- ЗАГРУЗКА ДАННЫХ ---
+    let cardsData = [];
+    let stateData = { cards: {}, night: 1, mode: 10, isMassacre: false };
+    let chatData = [];
+    let votingStatus = false;
 
     async function loadData() {
       try {
+        // 1. Карты
         const resCards = await fetch('/api/cards');
         if (resCards.ok) cardsData = await resCards.json();
-        
+
+        // 2. Статусы
         const resState = await fetch('/api/state');
         if (resState.ok) stateData = await resState.json();
-        
-        modeSelect.value = stateData.mode || 10;
-        renderPlayers();
 
+        // 3. Чат
         const resChat = await fetch('/api/chat');
-        if (resChat.ok) {
-          const newChatData = await resChat.json();
-          const newChatJSON = JSON.stringify(newChatData);
-          if (newChatJSON !== lastChatJSON) {
-            chatData = newChatData;
-            lastChatJSON = newChatJSON;
-            renderChats();
-          }
-        }
+        if (resChat.ok) chatData = await resChat.json();
 
+        // 4. Статус голосования
         const voteRes = await fetch('/api/voting-status');
         if (voteRes.ok) {
-          const voteStatus = await voteRes.json();
-          votingStatus = voteStatus.isVotingOpen;
+          const vs = await voteRes.json();
+          votingStatus = vs.isVotingOpen;
           
           const toggleBtn = document.getElementById('toggle-vote');
           if (votingStatus) {
@@ -118,29 +106,35 @@
             toggleBtn.style.color = "#ffd47a";
           }
         }
+
+        // Обновляем интерфейс
+        document.getElementById('mode-select').value = stateData.mode || 10;
+        renderPlayers();
+        if (!document.getElementById('tab-chats').classList.contains('hidden')) renderChats();
+
       } catch (e) {
         console.error("Ошибка при загрузке:", e);
       }
     }
 
+    // --- ОТРИСОВКА ИГРОКОВ ---
     function renderPlayers() {
+      const listEl = document.getElementById('list');
       if (!cardsData || cardsData.length === 0) {
         listEl.innerHTML = '<span style="color:#889">Нет данных. Нажмите "Сбросить игру".</span>';
         return;
       }
+      
       listEl.innerHTML = cardsData.map(c => {
         const st = stateData.cards[c.id] || { dead: false, personalWinDone: false };
-        const statusDot = st.online ? '<span style="color:#69f0ae; margin-right:8px;">●</span>' : '<span style="color:#55617a; margin-right:8px;">○</span>';
-        const extraInfo = c.quest ? ` | Квест: ${c.quest}` : '';
+        const dot = st.online ? '<span style="color:#69f0ae; margin-right:8px;">●</span>' : '<span style="color:#55617a; margin-right:8px;">○</span>';
+        const role = c.role === "Икона сопротивления" ? "Строитель (Икона)" : c.role;
         
-        let displayRole = c.role;
-        if (c.role === "Икона сопротивления") displayRole = "Строитель (Икона)";
-
         return `
           <div class="admin__row">
             <div>
-              <strong>${statusDot} ${c.randomCipher || c.cipher} · ${displayRole}</strong>
-              <small>${c.alibiProfession || '—'}${extraInfo}</small>
+              <strong>${dot} ${c.randomCipher || c.cipher} · ${role}</strong>
+              <small>${c.alibiProfession || '—'} | ${c.quest ? c.quest.substring(0, 30) + '...' : ''}</small>
             </div>
             <button class="btn-dead ${st.dead ? 'on' : ''}" onclick="toggleState(${c.id}, 'dead', ${!st.dead})">
               ${st.dead ? 'Мёртв' : 'Жив'}
@@ -153,90 +147,41 @@
       }).join('');
     }
 
-    async function renderVotes() {
-      try {
-        votesData = await (await fetch('/api/votes')).json();
-        const allCards = cardsData;
-        
-        if (!allCards || allCards.length === 0) {
-          votesListEl.innerHTML = '<span style="color:#889">Нет данных.</span>';
-          return;
-        }
-
-        let html = '';
-        allCards.forEach(c => {
-          if ((stateData.cards[c.id] || {}).dead) return;
-
-          const myVote = votesData[c.id];
-          let voteText = "Не голосовал";
-          
-          if (myVote !== undefined) {
-            if (myVote === null) voteText = "Воздержался";
-            else {
-              const target = allCards.find(t => t.id === myVote);
-              voteText = target ? `За ${target.randomCipher || target.cipher}` : "Неизвестно";
-            }
-          }
-
-          const displayRole = c.role === "Икона сопротивления" ? "Строитель (Икона)" : c.role;
-
-          html += `
-            <div class="admin__row" style="grid-template-columns: 1fr auto;">
-              <div>
-                <strong>${c.randomCipher || c.cipher} · ${displayRole}</strong>
-                <small>Голос: <span style="color: #69f0ae;">${voteText}</span></small>
-              </div>
-            </div>
-          `;
-        });
-        votesListEl.innerHTML = html;
-      } catch(e) {}
-    }
-
+    // --- ОТРИСОВКА ЧАТОВ ---
     function renderChats() {
+      const chatsEl = document.getElementById('chats');
       if (!chatsEl) return;
       const withMsgs = chatData.filter(c => c.messages && c.messages.length > 0);
+      
       if (withMsgs.length === 0) {
         chatsEl.innerHTML = '<div style="color:#7a879e; padding:20px; text-align:center;">Пока никто не задал вопросов.</div>';
         return;
       }
 
-      const activeElement = document.activeElement;
-      const isTyping = activeElement && activeElement.tagName === 'INPUT';
-      const typingId = isTyping ? activeElement.id : null;
-      const typingValue = isTyping ? activeElement.value : '';
-
       chatsEl.innerHTML = withMsgs.map(c => {
         const msgsHtml = c.messages.map(m => `
           <div class="msg msg--${m.from}">
             ${m.text}
-            <small>${new Date(m.ts).toLocaleTimeString('ru', {hour:'2-digit',minute:'2-digit'})}</small>
           </div>
         `).join('');
 
-        const inputValue = (typingId === `reply-${c.token}`) ? typingValue : '';
-        let chatDisplayRole = c.role === "Икона сопротивления" ? "Строитель" : c.role;
+        let role = c.role === "Икона сопротивления" ? "Строитель" : c.role;
 
         return `
           <div class="chat-block">
             <div class="chat-block__head">
-              <strong>${c.randomCipher || c.cipher} · ${chatDisplayRole}</strong> <small>(${c.alibiProfession || '—'})</small>
+              <strong>${c.randomCipher || c.cipher} · ${role}</strong> <small>(${c.alibiProfession || '—'})</small>
             </div>
             <div class="chat__log" style="max-height:200px; overflow-y:auto; margin-bottom:10px;">
               ${msgsHtml}
             </div>
             <div class="chat__input">
-              <input type="text" id="reply-${c.token}" value="${inputValue}" placeholder="Ответить..." />
+              <input type="text" id="reply-${c.token}" placeholder="Ответить..." />
               <button onclick="sendReply('${c.token}')">Ответить</button>
             </div>
           </div>
         `;
       }).join('');
-
-      if (isTyping && typingId) {
-        const el = document.getElementById(typingId);
-        if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
-      }
     }
 
     async function sendReply(token) {
@@ -250,17 +195,52 @@
       loadData();
     }
 
+    // --- ОТРИСОВКА ГОЛОСОВАНИЯ ---
+    async function renderVotes() {
+      const votesListEl = document.getElementById('votes-list');
+      if (!votesListEl) return;
+      
+      try {
+        const r = await fetch('/api/votes');
+        if (!r.ok) throw new Error('Сеть');
+        const votesData = await r.json();
+        
+        if (!cardsData || cardsData.length === 0) {
+          votesListEl.innerHTML = '<span style="color:#889">Нет данных.</span>';
+          return;
+        }
+        
+        votesListEl.innerHTML = cardsData.map(c => {
+          if ((stateData.cards[c.id] || {}).dead) return '';
+          const role = c.role === "Икона сопротивления" ? "Строитель (Икона)" : c.role;
+          const vote = votesData[c.id];
+          let text = "Не голосовал";
+          if (vote === null) text = "Воздержался";
+          else if (vote !== undefined) {
+            const t = cardsData.find(x => x.id === vote);
+            text = t ? `За ${t.randomCipher || t.cipher}` : "Неизвестно";
+          }
+          return `
+            <div class="admin__row" style="grid-template-columns: 1fr auto;">
+              <div><strong>${c.randomCipher || c.cipher} · ${role}</strong><small>Голос: <span style="color:#69f0ae;">${text}</span></small></div>
+            </div>
+          `;
+        }).join('');
+      } catch(e) {
+        votesListEl.innerHTML = '<span style="color:red">Ошибка загрузки голосов.</span>';
+      }
+    }
+
+    // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
     async function saveGlobalNotes() {
-      const text = globalNotesEl.value;
+      const text = document.getElementById('global-notes').value;
       await fetch(`/api/state/global_notes`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notes: text })
       });
       const btn = event.target;
-      const oldText = btn.innerText;
       btn.innerText = "Сохранено!";
-      btn.style.background = "rgba(80,255,160,0.2)";
-      setTimeout(() => { btn.innerText = oldText; btn.style.background = ""; }, 1500);
+      setTimeout(() => btn.innerText = "Сохранить заметки", 1500);
     }
 
     async function toggleState(id, field, value) {
@@ -271,11 +251,11 @@
       loadData();
     }
 
-    modeSelect.onchange = async (e) => {
-      const newMode = e.target.value;
+    // --- ОБРАБОТЧИКИ КНОПОК ---
+    document.getElementById('mode-select').onchange = async (e) => {
       await fetch('/api/set-mode', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: parseInt(newMode) })
+        body: JSON.stringify({ mode: parseInt(e.target.value) })
       });
       loadData();
     };
@@ -301,7 +281,6 @@
 
     document.getElementById('reset').onclick = async () => {
       if (!confirm('Сбросить игру и раздать новые роли?')) return;
-      lastChatJSON = ''; 
       await fetch('/api/reset', { method: 'POST' });
       loadData();
     };
@@ -311,8 +290,9 @@
       renderVotes();
     };
 
+    // --- ЗАПУСК ---
     loadData();
-    setInterval(loadData, 3000);
+    setInterval(loadData, 5000); // Обновляем реже (раз в 5 сек), чтобы не вешать браузер
   </script>
 </body>
 </html>
