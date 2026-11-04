@@ -67,7 +67,6 @@ function getCardsWithProfessions() {
   let allCards = JSON.parse(fs.readFileSync(CARDS_FILE, 'utf8'));
   let selectedCards = [];
   
-  // ЛОГИКА РЕЖИМОВ: 10 - базовая, 15 - с расширением
   if (currentMode === 10) {
     selectedCards = allCards.filter(c => c.id <= 10); 
   } else {
@@ -179,13 +178,26 @@ app.post('/api/voting-status', (req, res) => {
 
 app.post('/api/set-mode', (req, res) => {
   currentMode = req.body.mode;
-  gameCards = null; // <--- ВАЖНО: сбрасываем старую игру, чтобы карты пересоздались
+  gameCards = null; 
   res.json({ mode: currentMode });
 });
 
+// ЛОГИКА РЕЗНИ
 app.post('/api/next-night', (_, res) => {
   currentNight++;
-  res.json({ night: currentNight });
+  
+  let isMassacre = false;
+  if (currentMode >= 15 && currentNight === 3) {
+    const maifaAlive = getCardsWithProfessions().filter(c => 
+      (c.role === "Диссидент" || c.role === "Лидер сопротивления") && !(state[c.id] || {}).dead
+    );
+    const requiredMaifa = currentMode === 15 ? 3 : 4;
+    if (maifaAlive.length >= requiredMaifa) {
+      isMassacre = true;
+    }
+  }
+
+  res.json({ night: currentNight, isMassacre });
 });
 
 app.post('/api/reset', (_, res) => {
