@@ -3,8 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#1a2540">
   <title>Мы — Карта</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,15 +21,8 @@
     const app = document.getElementById('app');
     let card = null;
     let currentDeadStatus = false;
-    let glitchInterval = null;
     let userGender = localStorage.getItem('gender_' + token);
     let roleRevealed = localStorage.getItem('revealed_' + token) === 'true';
-
-    let deviceId = localStorage.getItem('device_id');
-    if (!deviceId) {
-      deviceId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-      localStorage.setItem('device_id', deviceId);
-    }
 
     const IMAGES = {
       "true_numer_m": "01a1a425-a8dd-72d6-8da4-465b8e72eba8.jpg",
@@ -54,20 +45,7 @@
 
     async function start() {
       try {
-        const res = await fetch(`/api/cards?t=${token}&device=${deviceId}`);
-        
-        if (res.status === 403) {
-          app.innerHTML = `
-            <div class="card" style="text-align: center;">
-              <div class="card-inner">
-                <h2 style="color: #ff5252; margin-bottom: 20px;">Доступ заблокирован</h2>
-                <p style="color: #e8eef7; font-size: 16px; line-height: 1.5;">Этот QR-код уже был отсканирован другим устройством.</p>
-              </div>
-            </div>
-          `;
-          return;
-        }
-
+        const res = await fetch(`/api/cards?t=${token}`);
         const cards = await res.json();
         card = cards.find(c => c.token === token);
         
@@ -144,43 +122,25 @@
       localStorage.removeItem('revealed_' + token);
       userGender = null;
       roleRevealed = false;
-      if (glitchInterval) clearInterval(glitchInterval);
       renderGenderSelect();
     }
 
     function startIntervals() {
+      // Проверяем статус раз в 10 секунд (снижаем нагрузку)
       setInterval(async () => {
         try {
           const stateRes = await fetch('/api/state');
           const stateData = await stateRes.json();
           const st = (stateData.cards && stateData.cards[card.id]) || { dead: false, personalWinDone: false };
           
-          if (st.dead && card.isAvenger && !st.avengerUsed) {
-            return; 
-          }
-
           if (st.dead !== currentDeadStatus) {
             currentDeadStatus = st.dead;
             await renderCard();
           }
-
-          const voteRes = await fetch('/api/voting-status');
-          const voteStatus = await voteRes.json();
-          const voteContainer = document.getElementById('vote-container');
-          
-          if (voteContainer) {
-            if (voteStatus.isVotingOpen && voteContainer.style.display === 'none') {
-              await renderCard();
-            }
-            else if (!voteStatus.isVotingOpen && voteContainer.style.display !== 'none') {
-              voteContainer.style.display = 'none';
-            }
-          }
-
         } catch (e) {}
-      }, 2000);
+      }, 10000);
 
-      setInterval(loadChat, 2000);
+      setInterval(loadChat, 10000);
     }
 
     async function renderCard() {
@@ -189,30 +149,11 @@
       const allStates = stateData.cards || {};
       const st = allStates[card.id] || { dead: false, personalWinDone: false };
       
-      if (st.dead && !currentDeadStatus) {
-        const sound = document.getElementById('glass-sound');
-        if (sound) sound.play().catch(() => {});
-      }
-
       currentDeadStatus = st.dead;
       const bgImage = st.dead ? 'bg-dead.v.png' : 'bg-alive.v.png';
       const isFemale = userGender === 'female';
 
       document.documentElement.style.setProperty('--bg-url', `url('${bgImage}')`);
-
-      const DEATH_QUOTES = [
-        "«Плохо ваше дело! По-видимому, у вас образовалась душа».",
-        "«Блаженство и зависть — это числитель и знаменатель дроби, именуемой счастьем».",
-        "«Мне было ясно: все спасены, но мне спасения уже нет, я не хочу спасения…»",
-        "«Ведь только и можно любить непокорное».",
-        "«Любовь и голод владеют миром».",
-        "«Знание, абсолютно уверенное в том, что оно безошибочно, — это вера».",
-        "«Но, дорогие, надо же сколько-нибудь думать, это очень помогает».",
-        "«Но мы-то знаем, что сны — это серьезная психическая болезнь».",
-        "«И математика, и смерть — никогда не ошибаются».",
-        "«Арифметически-безграмотную жалость знали только древние: нам она смешна»."
-      ];
-      const randomQuote = DEATH_QUOTES[Math.floor(Math.random() * DEATH_QUOTES.length)];
 
       let sideText = "ИНТЕГРАЛ";
       let sideClass = "side--integral";
@@ -244,7 +185,6 @@
         displayRole = isFemale ? "Строительница" : "Строитель";
       }
 
-      let displayQuote = card.quote; 
       const wordDeadFinal = isFemale ? 'дезинтегрирована' : 'дезинтегрирован';
       const wordProfession = isFemale ? 'Специальность' : 'Профессия';
 
@@ -266,7 +206,6 @@
         `;
       }
 
-      // СЧЕТЧИК ДО РЕЗНИ
       let massacreCounter = "";
       if (stateData.mode >= 15) {
         if (stateData.night < 3) {
@@ -289,7 +228,6 @@
               <div class="card__role">${displayRole}</div>
               <div class="card__side ${sideClass}">${sideText}</div>
               
-              <!-- ПЛАШКА РЕЗНИ ДЛЯ МАФИИ -->
               ${stateData.isMassacre && (card.role === "Диссидент" || card.role === "Лидер сопротивления") ? `
                 <div style="margin-top: 10px; padding: 10px; background: rgba(255,0,0,0.2); border: 2px solid #ff0000; border-radius: 8px; text-align: center; color: #ff5252; font-weight: bold; font-size: 14px; animation: pulse 1s infinite;">
                   🩸 РЕЗНЯ: Выберите ДВУХ жертв.
@@ -301,36 +239,26 @@
               ${goalHtml}
 
               <div class="card__legend">${displayLegend}</div>
-              <div class="card__quote">«${displayQuote}»</div>
+              <div class="card__quote">«${card.quote}»</div>
 
               <!-- БЛОК ГОЛОСОВАНИЯ -->
               <div class="card__vote" id="vote-container" style="display: none; margin-top: 15px; padding: 15px; background: rgba(30, 50, 80, 0.95); border: 1px solid #4a7fff; border-radius: 12px;">
                 <h3 style="color: #7aa7ff; margin-bottom: 10px; font-size: 16px; text-align: center;">Голосование открыто</h3>
                 <div id="vote-targets" style="display: flex; flex-direction: column; gap: 8px;"></div>
-                
                 <button onclick="castVote(null)" style="margin-top: 10px; width: 100%; padding: 10px; background: rgba(120,170,255,0.1); border: 1px solid #4a7fff; border-radius: 8px; color: #fff; cursor: pointer; font-size: 14px;">Воздержаться</button>
               </div>
             ` : `
               <div class="card__portrait dead-portrait">
                 <img id="portrait-img" class="main-img" src="" alt="Портрет" style="width:100%; height:100%; object-fit:cover; border-radius: 16px;">
               </div>
-              
-              ${card.isAvenger && !st.avengerUsed ? `
-                <div class="banner-dead" style="background: rgba(200,0,0,0.3); border-color: #ff0000;">
-                  <strong>Ты пал. Но Интеграл не прощает.</strong><br><br>
-                  Ты оказался скрытым Мстителем. Выбери того, кто уйдет с тобой:
-                  <div style="margin-top: 15px; display: flex; flex-direction: column; gap: 8px;" id="avenger-targets"></div>
-                </div>
-              ` : `
-                <div class="banner-dead">
-                  <strong>Ты ${wordDeadFinal}.</strong><br><br>
-                  Ты больше не можешь говорить или писать.<br>
-                  Но твой голос в Стеклянном зале всё ещё слышен — <strong>ты можешь голосовать.</strong>
-                  <div style="margin-top: 15px; font-size: 13px; color: #c4b8ff; font-style: italic;">${randomQuote}</div>
-                </div>
-              `}
+              <div class="banner-dead">
+                <strong>Ты ${wordDeadFinal}.</strong><br><br>
+                Ты больше не можешь говорить или писать.<br>
+                Но твой голос в Стеклянном зале всё ещё слышен — <strong>ты можешь голосовать.</strong>
+              </div>
             `}
 
+            <!-- ЧАТ (ЕДИНЫЙ ДЛЯ ВСЕХ) -->
             <div class="chat">
               <h4>Связаться с Благодетелем</h4>
               <div class="chat__log" id="log"><div class="chat__empty">Загрузка...</div></div>
@@ -344,7 +272,6 @@
               <button onclick="resetGender()" style="background:none; border:none; color:#55617a; font-size:12px; cursor:pointer; text-decoration: underline;">Сменить пол</button>
             </div>
 
-            <!-- НИЗ КАРТЫ: СЧЕТЧИК И АВТОР -->
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
               <div style="font-size: 11px; color: #ffd47a; font-weight: bold;">
                 ${massacreCounter}
@@ -363,20 +290,11 @@
           const genderSuffix = isFemale ? '_f' : '_m';
           const key = card.imageKey + genderSuffix;
           const fileName = IMAGES[key] || `${card.imageKey}${genderSuffix}.png`;
-          
           imgEl.src = `/${fileName}`;
-          
-          imgEl.onerror = function() {
-            this.style.display = 'none';
-            const parent = this.parentElement;
-            if (parent) {
-              parent.innerHTML = `<div style="color: #ff5252; font-size: 12px; text-align: center; padding: 10px; background: rgba(0,0,0,0.5); border-radius: 8px; word-break: break-all;">Ошибка загрузки<br>Ищу файл:<br><b>${fileName}</b></div>`;
-            }
-          };
         }
       }
 
-      // ЛОГИКА ГОЛОСОВАНИЯ
+      // Логика голосования
       const voteContainer = document.getElementById('vote-container');
       const voteTargets = document.getElementById('vote-targets');
       
@@ -384,13 +302,10 @@
         fetch('/api/voting-status').then(r => r.json()).then(status => {
           if (status.isVotingOpen) {
             voteContainer.style.display = 'block';
-            
             fetch('/api/cards').then(r => r.json()).then(allCards => {
               const liveCards = allCards.filter(c => c.id !== card.id && !(allStates[c.id] || {}).dead);
-              
               fetch('/api/votes').then(r => r.json()).then(currentVotes => {
                 const myVote = currentVotes[card.id];
-                
                 let html = '';
                 liveCards.forEach(p => {
                   const isSelected = (myVote === p.id);
@@ -409,57 +324,6 @@
         });
       }
 
-      if (st.dead && card.isAvenger && !st.avengerUsed) {
-        const targetsBox = document.getElementById('avenger-targets');
-        if (targetsBox) {
-          try {
-            const allCardsRes = await fetch('/api/cards');
-            const allCards = await allCardsRes.json();
-            const livePlayers = allCards.filter(c => c.id !== card.id && !(allStates[c.id] || {}).dead);
-            
-            livePlayers.forEach(p => {
-              const btn = document.createElement('button');
-              btn.className = 'btn-gender';
-              btn.style.padding = '10px';
-              btn.style.fontSize = '14px';
-              btn.innerText = `${p.randomCipher || p.cipher}`;
-              btn.onclick = () => {
-                showCustomConfirm(`Забрать с собой нумера ${p.randomCipher || p.cipher}?`, async () => {
-                  await fetch(`/api/state/${p.id}`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ dead: true })
-                  });
-                  await fetch(`/api/state/${card.id}`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ avengerUsed: true })
-                  });
-                  location.reload(); 
-                });
-              };
-              targetsBox.appendChild(btn);
-            });
-          } catch(e) {}
-        }
-      }
-
-      if (glitchInterval) clearInterval(glitchInterval);
-      if (st.dead) {
-        const img = document.getElementById('portrait-img');
-        if (img) {
-          glitchInterval = setInterval(() => {
-            const isRed = Math.random() > 0.5;
-            const offsetX = (Math.random() - 0.5) * 10;
-            const offsetY = (Math.random() - 0.5) * 4;
-            img.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
-            if (isRed) {
-              img.style.filter = "sepia(1) hue-rotate(-50deg) saturate(10) drop-shadow(2px 0 0 red)";
-            } else {
-              img.style.filter = "sepia(1) hue-rotate(150deg) saturate(10) drop-shadow(-2px 0 0 blue)";
-            }
-          }, 100);
-        }
-      }
-      
       const btn = document.getElementById('send');
       if (btn) {
         btn.onclick = async () => {
@@ -479,43 +343,18 @@
     }
 
     function castVote(targetId) {
-      showCustomConfirm(targetId ? 'Подтвердить ваш голос?' : 'Вы уверены, что хотите воздержаться?', async () => {
-        await fetch('/api/vote', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ voterId: card.id, targetId: targetId })
-        });
-        await renderCard();
-      });
-    }
-
-    function showCustomConfirm(text, onConfirm) {
-      const modal = document.createElement('div');
-      modal.className = 'custom-confirm';
-      modal.innerHTML = `
-        <div class="custom-confirm__box">
-          <div class="custom-confirm__text">${text}</div>
-          <div class="custom-confirm__buttons">
-            <button class="custom-confirm__btn" id="confirm-no">Отмена</button>
-            <button class="custom-confirm__btn custom-confirm__btn--yes" id="confirm-yes">Да</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-
-      document.getElementById('confirm-no').onclick = () => modal.remove();
-      document.getElementById('confirm-yes').onclick = () => {
-        modal.remove();
-        onConfirm();
-      };
+      if (!confirm(targetId ? 'Подтвердить ваш голос?' : 'Вы уверены, что хотите воздержаться?')) return;
+      fetch('/api/vote', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voterId: card.id, targetId: targetId })
+      }).then(() => renderCard());
     }
 
     async function loadChat() {
       const log = document.getElementById('log');
       if (!log) return;
-      
       try {
         const msgs = await (await fetch(`/api/chat/${token}`)).json();
-        
         if (msgs && msgs.length > 0) {
           log.innerHTML = msgs.map(m => `<div class="msg msg--${m.from}">${m.text}</div>`).join('');
           log.scrollTop = log.scrollHeight;
