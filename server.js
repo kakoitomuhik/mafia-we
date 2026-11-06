@@ -16,7 +16,6 @@ let currentNight = 1;
 let currentMode = 10; 
 let gameCards = null;
 let isVotingOpen = false;
-let isMassacreActive = false; 
 
 const PROFESSIONS = [
   "Инженер", "Архитектор", "Учитель", "Бухгалтер", 
@@ -117,7 +116,7 @@ function getCardsWithProfessions() {
 }
 
 app.get('/api/cards', (req, res) => res.json(getCardsWithProfessions()));
-app.get('/api/state', (_, res) => res.json({ cards: state, night: currentNight, mode: currentMode, isMassacre: isMassacreActive }));
+app.get('/api/state', (_, res) => res.json({ cards: state, night: currentNight, mode: currentMode }));
 app.post('/api/state/:id', (req, res) => {
   state[req.params.id] = { ...(state[req.params.id] || {}), ...req.body };
   res.json(state[req.params.id]);
@@ -154,20 +153,9 @@ app.get('/api/voting-status', (_, res) => res.json({ isVotingOpen }));
 app.post('/api/voting-status', (req, res) => { isVotingOpen = req.body.isVotingOpen; res.json({ isVotingOpen }); });
 
 app.post('/api/set-mode', (req, res) => { currentMode = req.body.mode; gameCards = null; res.json({ mode: currentMode }); });
-
-app.post('/api/next-night', (_, res) => {
-  currentNight++;
-  if (currentMode >= 15 && currentNight === 3) {
-    const maifaAlive = getCardsWithProfessions().filter(c => 
-      (c.role === "Диссидент" || c.role === "Лидер сопротивления") && !(state[c.id] || {}).dead
-    );
-    if (maifaAlive.length >= (currentMode === 15 ? 3 : 4)) isMassacreActive = true;
-  }
-  res.json({ night: currentNight, isMassacre: isMassacreActive });
-});
-
+app.post('/api/next-night', (_, res) => { currentNight++; res.json({ night: currentNight }); });
 app.post('/api/reset', (_, res) => {
-  state = {}; chat = {}; votes = {}; currentNight = 1; isVotingOpen = false; isMassacreActive = false; gameCards = null; 
+  state = {}; chat = {}; votes = {}; currentNight = 1; isVotingOpen = false; gameCards = null; 
   res.json({ ok: true });
 });
 
