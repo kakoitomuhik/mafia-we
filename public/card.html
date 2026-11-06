@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Мы — Карта</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,14 +15,48 @@
   <div id="app" class="page">
     <div style="color: white; text-align: center; margin-top: 50px;">Загрузка...</div>
   </div>
-  
+
   <script>
+    // ============================================================
+    // Утилиты
+    // ============================================================
+    const escapeHtml = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+
+    async function api(url, opts) {
+      const res = await fetch(url, opts);
+      if (!res.ok) {
+        let msg = `HTTP ${res.status}`;
+        try {
+          const body = await res.json();
+          if (body && body.error) msg += `: ${body.error}`;
+        } catch {}
+        throw new Error(msg);
+      }
+      return res.json();
+    }
+
+    const postJson = (url, data) => api(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data || {})
+    });
+
+    // ============================================================
+    // Состояние
+    // ============================================================
     const token = new URLSearchParams(location.search).get('t');
     const app = document.getElementById('app');
+
     let card = null;
     let currentDeadStatus = false;
     let userGender = localStorage.getItem('gender_' + token);
     let roleRevealed = localStorage.getItem('revealed_' + token) === 'true';
+
+    let intervalState = null;
+    let intervalChat = null;
+    let lastSnapshot = '';
 
     const IMAGES = {
       "true_numer_m": "01a1a425-a8dd-72d6-8da4-465b8e72eba8.jpg",
@@ -37,36 +71,35 @@
       "dissident2_f": "Polish_20261104_045710421.jpg"
     };
 
+    // ============================================================
+    // Старт
+    // ============================================================
     if (!token) {
       app.innerHTML = '<p style="color:#889; padding: 20px; text-align:center; font-size: 18px;">Токен не найден.</p>';
     } else {
-      start();
+      start().catch(err => {
+        console.error('start failed:', err);
+        app.innerHTML = '<p style="color:#ff5252; padding: 20px; text-align:center; font-size: 18px;">Ошибка загрузки данных.</p>';
+      });
     }
 
     async function start() {
-      try {
-        const res = await fetch(`/api/cards?t=${token}`);
-        const cards = await res.json();
-        card = cards.find(c => c.token === token);
-        
-        if (!card) {
-          app.innerHTML = '<p style="color:#889; padding: 20px; text-align:center; font-size: 18px;">Карта не найдена.</p>';
-          return;
-        }
+      card = await api(`/api/cards?t=${encodeURIComponent(token)}`);
+      if (!card) throw new Error('empty card');
 
-        if (!userGender) {
-          renderGenderSelect();
-        } else if (!roleRevealed) {
-          renderRevealScreen();
-        } else {
-          await renderCard();
-          startIntervals();
-        }
-      } catch (err) {
-        app.innerHTML = '<p style="color:red; padding: 20px; text-align:center; font-size: 18px;">Ошибка загрузки данных.</p>';
+      if (!userGender) {
+        renderGenderSelect();
+      } else if (!roleRevealed) {
+        renderRevealScreen();
+      } else {
+        await renderCard();
+        startIntervals();
       }
     }
 
+    // ============================================================
+    // Экран выбора пола
+    // ============================================================
     function renderGenderSelect() {
       app.innerHTML = `
         <div class="card" style="text-align: center; background-image: url('bg-alive.v.png');">
@@ -85,11 +118,14 @@
       `;
     }
 
+    // ============================================================
+    // Экран "показать роль"
+    // ============================================================
     function renderRevealScreen() {
       app.innerHTML = `
         <div class="card" style="text-align: center; background-image: url('bg-alive.v.png');">
           <div class="card-inner">
-            <div class="card__cipher">Нумер ${card.randomCipher || card.cipher}</div>
+            <div class="card__cipher">Нумер ${escapeHtml(card.randomCipher || card.cipher || '—')}</div>
             <h2 style="margin: 30px 0 10px 0; color: #a8c4ff;">Твоя роль готова</h2>
             <p style="color: #9aa8c0; margin-bottom: 30px; font-size: 15px;">Убедись, что никто не смотрит на твой экран, и нажми кнопку.</p>
             <button onclick="revealRole()" class="btn-gender" style="width: 100%;">Показать мою роль</button>
@@ -104,20 +140,29 @@
     function revealRole() {
       roleRevealed = true;
       localStorage.setItem('revealed_' + token, 'true');
-      start();
+      start().catch(err => console.error(err));
     }
 
-    function setGender(gender) {
+    // ============================================================
+    // Пол
+    // ============================================================
+    async function setGender(gender) {
       userGender = gender;
       localStorage.setItem('gender_' + token, gender);
-      fetch(`/api/state/${card.id}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ online: true })
-      });
-      start();
+      try {
+        await postJson(`/api/state/${card.id}`, { online: true });
+      } catch (e) {
+        console.warn('Не удалось отметить online:', e);
+      }
+      await start();
     }
 
-    function resetGender() {
+    async function resetGender() {
+      try {
+        if (card && card.id) {
+          await postJson(`/api/state/${card.id}`, { online: false });
+        }
+      } catch (e) {}
       localStorage.removeItem('gender_' + token);
       localStorage.removeItem('revealed_' + token);
       userGender = null;
@@ -125,40 +170,70 @@
       renderGenderSelect();
     }
 
+    // ============================================================
+    // Интервалы — с очисткой и без дублей
+    // ============================================================
     function startIntervals() {
-      setInterval(async () => {
-        try {
-          const stateRes = await fetch('/api/state');
-          const stateData = await stateRes.json();
-          const st = (stateData.cards && stateData.cards[card.id]) || { dead: false, personalWinDone: false };
-          
-          if (st.dead !== currentDeadStatus) {
-            currentDeadStatus = st.dead;
-            await renderCard();
-          }
-        } catch (e) {}
-      }, 10000);
-
-      setInterval(loadChat, 10000);
+      if (intervalState) clearInterval(intervalState);
+      if (intervalChat) clearInterval(intervalChat);
+      intervalState = setInterval(pollState, 10000);
+      intervalChat = setInterval(loadChat, 10000);
     }
 
+    async function pollState() {
+      try {
+        const [stateData, voteStatus] = await Promise.all([
+          api('/api/state'),
+          api('/api/voting-status')
+        ]);
+        const st = (stateData.cards && stateData.cards[card.id]) || {};
+        const deadCount = Object.values(stateData.cards || {}).filter(s => s && s.dead).length;
+
+        const snapshot = JSON.stringify({
+          dead: !!st.dead,
+          night: stateData.night,
+          voting: !!voteStatus.isVotingOpen,
+          massacre: !!stateData.isMassacre,
+          deadCount
+        });
+
+        if (snapshot !== lastSnapshot) {
+          lastSnapshot = snapshot;
+          await renderCard();
+        }
+      } catch (e) {
+        console.warn('pollState failed:', e);
+      }
+    }
+
+    // ============================================================
+    // Рендер карты
+    // ============================================================
     async function renderCard() {
-      const stateRes = await fetch('/api/state');
-      const stateData = await stateRes.json();
+      // Сохраняем черновик сообщения и фокус
+      const msgEl = document.getElementById('msg');
+      const draft = msgEl ? msgEl.value : '';
+      const hadFocus = document.activeElement === msgEl;
+
+      const [stateData, voteStatus] = await Promise.all([
+        api('/api/state'),
+        api('/api/voting-status')
+      ]);
+
       const allStates = stateData.cards || {};
       const st = allStates[card.id] || { dead: false, personalWinDone: false };
-      
       currentDeadStatus = st.dead;
+
       const bgImage = st.dead ? 'bg-dead.v.png' : 'bg-alive.v.png';
       const isFemale = userGender === 'female';
 
       document.documentElement.style.setProperty('--bg-url', `url('${bgImage}')`);
 
-      let sideText = "ИНТЕГРАЛ";
-      let sideClass = "side--integral";
-      if (card.role === "Диссидент" || card.role === "Лидер сопротивления") {
-        sideText = "СОПРОТИВЛЕНИЕ";
-        sideClass = "side--resistance"; 
+      let sideText = 'ИНТЕГРАЛ';
+      let sideClass = 'side--integral';
+      if (card.role === 'Диссидент' || card.role === 'Лидер сопротивления') {
+        sideText = 'СОПРОТИВЛЕНИЕ';
+        sideClass = 'side--resistance';
       }
 
       let displayTask = card.task;
@@ -171,48 +246,48 @@
       let displayGoal = card.goalName;
 
       if (isFemale) {
-        if (card.role === "Строитель") displayRole = "Строительница";
-        if (card.role === "Диссидент") displayRole = "Диссидентка";
-        if (card.role === "Хранитель") displayRole = "Хранительница";
-        if (card.alibiProfession === "Учитель") displayAlibi = "Учительница";
-        if (card.alibiProfession === "Сварщик") displayAlibi = "Сварщица";
-        if (card.alibiProfession === "Программист") displayAlibi = "Программистка";
+        if (card.role === 'Строитель') displayRole = 'Строительница';
+        if (card.role === 'Диссидент') displayRole = 'Диссидентка';
+        if (card.role === 'Хранитель') displayRole = 'Хранительница';
+        if (card.alibiProfession === 'Учитель') displayAlibi = 'Учительница';
+        if (card.alibiProfession === 'Сварщик') displayAlibi = 'Сварщица';
+        if (card.alibiProfession === 'Программист') displayAlibi = 'Программистка';
         if (card.goalNameF) displayGoal = card.goalNameF;
       }
 
-      if (card.role === "Икона сопротивления") {
-        displayRole = isFemale ? "Строительница" : "Строитель";
+      if (card.role === 'Икона сопротивления') {
+        displayRole = isFemale ? 'Строительница' : 'Строитель';
       }
 
       const wordDeadFinal = isFemale ? 'дезинтегрирована' : 'дезинтегрирован';
       const wordProfession = isFemale ? 'Специальность' : 'Профессия';
 
-      let goalHtml = "";
-      if (card.role === "Строитель" || card.role === "Икона сопротивления") {
-        const questText = card.quest ? card.quest : "Выполни свой квест";
+      let goalHtml = '';
+      if (card.role === 'Строитель' || card.role === 'Икона сопротивления') {
+        const questText = card.quest || 'Выполни свой квест';
         goalHtml = `
           <div class="card__goal">
-            <h3>Цель ${displayGoal}</h3>
-            <p>${questText}</p>
+            <h3>Цель ${escapeHtml(displayGoal || '')}</h3>
+            <p>${escapeHtml(questText)}</p>
           </div>
         `;
       } else {
         goalHtml = `
           <div class="card__goal">
-            <h3>Цель ${displayGoal}</h3>
-            <p>${displayTask}</p>
+            <h3>Цель ${escapeHtml(displayGoal || '')}</h3>
+            <p>${escapeHtml(displayTask || '')}</p>
           </div>
         `;
       }
 
-      let massacreCounter = "";
+      let massacreCounter = '';
       if (stateData.mode >= 15) {
         if (stateData.night < 3) {
           massacreCounter = `До резни: ${3 - stateData.night} ноч.`;
         } else if (stateData.night >= 3 && !stateData.isMassacre) {
-          massacreCounter = `Резня: не состоялась`;
+          massacreCounter = 'Резня: не состоялась';
         } else if (stateData.isMassacre) {
-          massacreCounter = `🩸 РЕЗНЯ АКТИВНА`;
+          massacreCounter = '🩸 РЕЗНЯ АКТИВНА';
         }
       }
 
@@ -220,25 +295,25 @@
         <div class="card ${st.dead ? 'card--dead' : ''}">
           <div class="card-inner">
             ${!st.dead ? `
-              <div class="card__cipher">Нумер ${card.randomCipher || card.cipher}</div>
+              <div class="card__cipher">Нумер ${escapeHtml(card.randomCipher || card.cipher || '—')}</div>
               <div class="card__portrait">
                 <img id="portrait-img" src="" alt="Портрет" style="width:100%; height:100%; object-fit:cover; border-radius: 16px;">
               </div>
-              <div class="card__role">${displayRole}</div>
+              <div class="card__role">${escapeHtml(displayRole || '')}</div>
               <div class="card__side ${sideClass}">${sideText}</div>
-              
-              ${stateData.isMassacre && (card.role === "Диссидент" || card.role === "Лидер сопротивления") ? `
+
+              ${stateData.isMassacre && (card.role === 'Диссидент' || card.role === 'Лидер сопротивления') ? `
                 <div style="margin-top: 10px; padding: 10px; background: rgba(255,0,0,0.2); border: 2px solid #ff0000; border-radius: 8px; text-align: center; color: #ff5252; font-weight: bold; font-size: 14px; animation: pulse 1s infinite;">
                   🩸 РЕЗНЯ: Выберите ДВУХ жертв.
                 </div>
               ` : ''}
 
-              <div class="card__alibi"><strong>${wordProfession}:</strong> ${displayAlibi}</div>
-              
+              <div class="card__alibi"><strong>${wordProfession}:</strong> ${escapeHtml(displayAlibi || '—')}</div>
+
               ${goalHtml}
 
-              <div class="card__legend">${displayLegend}</div>
-              <div class="card__quote">«${card.quote}»</div>
+              <div class="card__legend">${escapeHtml(displayLegend || '')}</div>
+              <div class="card__quote">«${escapeHtml(card.quote || '')}»</div>
 
               <div class="card__vote" id="vote-container" style="display: none; margin-top: 15px; padding: 15px; background: rgba(30, 50, 80, 0.95); border: 1px solid #4a7fff; border-radius: 12px;">
                 <h3 style="color: #7aa7ff; margin-bottom: 10px; font-size: 16px; text-align: center;">Голосование открыто</h3>
@@ -264,7 +339,7 @@
                 <button id="send">Отправить</button>
               </div>
             </div>
-            
+
             <div style="margin-top: 15px; text-align: center;">
               <button onclick="resetGender()" style="background:none; border:none; color:#55617a; font-size:12px; cursor:pointer; text-decoration: underline;">Сменить пол</button>
             </div>
@@ -281,61 +356,27 @@
         </div>
       `;
 
-      // ЗАГРУЗКА КАРТИНКИ
-      const imgEl = document.getElementById('portrait-img');
-      if (imgEl) {
-        const genderSuffix = isFemale ? '_f' : '_m';
-        const key = card.imageKey + genderSuffix;
-        
-        // Если это Хранитель (М-15), читаем картинку из текстового файла
-        if (card.role === "Хранитель") {
-          const txtFileName = isFemale ? 'hranitel_f.txt' : 'hranitel_m.txt';
-          fetch(`/${txtFileName}`)
-            .then(res => res.text())
-            .then(base64 => {
-              imgEl.src = base64;
-            })
-            .catch(() => {
-              // Если файл не найден, пробуем обычную картинку
-              imgEl.src = `/${IMAGES[key] || `${card.imageKey}${genderSuffix}.png`}`;
-            });
-        } else {
-          // Для остальных ищем обычные файлы
-          const fileName = IMAGES[key] || `${card.imageKey}${genderSuffix}.png`;
-          imgEl.src = `/${fileName}`;
-        }
+      // Восстанавливаем черновик
+      const newMsgEl = document.getElementById('msg');
+      if (newMsgEl) {
+        if (draft) newMsgEl.value = draft;
+        if (hadFocus) newMsgEl.focus();
       }
 
-      // ЛОГИКА ГОЛОСОВАНИЯ
-      const voteContainer = document.getElementById('vote-container');
-      const voteTargets = document.getElementById('vote-targets');
-      
-      if (voteContainer && !st.dead) {
-        fetch('/api/voting-status').then(r => r.json()).then(status => {
-          if (status.isVotingOpen) {
-            voteContainer.style.display = 'block';
-            fetch('/api/cards').then(r => r.json()).then(allCards => {
-              const liveCards = allCards.filter(c => c.id !== card.id && !(allStates[c.id] || {}).dead);
-              fetch('/api/votes').then(r => r.json()).then(currentVotes => {
-                const myVote = currentVotes[card.id];
-                let html = '';
-                liveCards.forEach(p => {
-                  const isSelected = (myVote === p.id);
-                  html += `
-                    <button onclick="castVote(${p.id})" style="padding: 10px; background: ${isSelected ? 'rgba(80,255,160,0.5)' : 'rgba(120,170,255,0.2)'}; border: 1px solid ${isSelected ? '#69f0ae' : '#7aa7ff'}; border-radius: 8px; color: #fff; cursor: pointer; font-size: 14px; text-align: left;">
-                      ${p.randomCipher || p.cipher} ${isSelected ? '✓' : ''}
-                    </button>
-                  `;
-                });
-                voteTargets.innerHTML = html;
-              });
-            });
-          } else {
-            voteContainer.style.display = 'none';
-          }
-        });
+      // Воспроизведение звука при смерти
+      if (st.dead && !currentDeadStatus) {
+        // no-op: сюда попадём только при переходе, но currentDeadStatus уже обновлён выше
       }
 
+      // Загрузка портрета
+      await loadPortrait(isFemale, st.dead);
+
+      // Голосование
+      if (voteStatus.isVotingOpen && !st.dead) {
+        await renderVoting();
+      }
+
+      // Отправка сообщения
       const btn = document.getElementById('send');
       if (btn) {
         btn.onclick = async () => {
@@ -343,39 +384,127 @@
           const text = inp.value.trim();
           if (!text) return;
           inp.value = '';
-          await fetch(`/api/chat/${token}`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text })
-          });
-          loadChat();
+          try {
+            await postJson(`/api/chat/${encodeURIComponent(token)}`, { text });
+            await loadChat();
+          } catch (e) {
+            console.error('send failed:', e);
+            alert('Не удалось отправить сообщение');
+          }
         };
       }
-      
-      loadChat();
+
+      await loadChat();
     }
 
-    function castVote(targetId) {
+    // ============================================================
+    // Портрет
+    // ============================================================
+    async function loadPortrait(isFemale, isDead) {
+      const imgEl = document.getElementById('portrait-img');
+      if (!imgEl) return;
+
+      const genderSuffix = isFemale ? '_f' : '_m';
+      const key = (card.imageKey || '') + genderSuffix;
+
+      if (card.role === 'Хранитель') {
+        const txtFileName = isFemale ? 'hranitel_f.txt' : 'hranitel_m.txt';
+        try {
+          const res = await fetch(`/${txtFileName}`);
+          if (!res.ok) throw new Error('not found');
+          const base64 = await res.text();
+          imgEl.src = base64;
+        } catch {
+          const fileName = IMAGES[key] || `${card.imageKey}${genderSuffix}.png`;
+          imgEl.src = `/${fileName}`;
+        }
+      } else {
+        const fileName = IMAGES[key] || `${card.imageKey}${genderSuffix}.png`;
+        imgEl.src = `/${fileName}`;
+      }
+
+      // Воспроизводим звук при первом переходе в dead
+      if (isDead) {
+        const audio = document.getElementById('glass-sound');
+        if (audio && audio.dataset.played !== '1') {
+          audio.play().catch(() => {});
+          audio.dataset.played = '1';
+        }
+      }
+    }
+
+    // ============================================================
+    // Голосование
+    // ============================================================
+    async function renderVoting() {
+      const container = document.getElementById('vote-container');
+      const targets = document.getElementById('vote-targets');
+      if (!container || !targets) return;
+
+      container.style.display = 'block';
+
+      try {
+        const [players, currentVotes, stateData] = await Promise.all([
+          api('/api/players'),
+          api('/api/votes'),
+          api('/api/state')
+        ]);
+        const allStates = stateData.cards || {};
+        const live = players.filter(p => p.id !== card.id && !(allStates[p.id] || {}).dead);
+        const myVote = currentVotes[card.id];
+
+        targets.innerHTML = live.map(p => {
+          const isSelected = myVote === p.id;
+          return `
+            <button onclick="castVote(${Number(p.id)})" style="padding: 10px; background: ${isSelected ? 'rgba(80,255,160,0.5)' : 'rgba(120,170,255,0.2)'}; border: 1px solid ${isSelected ? '#69f0ae' : '#7aa7ff'}; border-radius: 8px; color: #fff; cursor: pointer; font-size: 14px; text-align: left;">
+              ${escapeHtml(p.randomCipher || p.cipher || '—')} ${isSelected ? '✓' : ''}
+            </button>
+          `;
+        }).join('');
+      } catch (e) {
+        console.warn('renderVoting failed:', e);
+        container.style.display = 'none';
+      }
+    }
+
+    async function castVote(targetId) {
       if (!confirm(targetId ? 'Подтвердить ваш голос?' : 'Вы уверены, что хотите воздержаться?')) return;
-      fetch('/api/vote', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ voterId: card.id, targetId: targetId })
-      }).then(() => renderCard());
+      try {
+        await postJson('/api/vote', {
+          voterId: card.id,
+          targetId: targetId === null ? null : Number(targetId)
+        });
+        await renderCard();
+      } catch (e) {
+        console.error('castVote failed:', e);
+        alert('Не удалось проголосовать: ' + e.message);
+      }
     }
 
+    // ============================================================
+    // Чат
+    // ============================================================
     async function loadChat() {
       const log = document.getElementById('log');
       if (!log) return;
       try {
-        const msgs = await (await fetch(`/api/chat/${token}`)).json();
-        if (msgs && msgs.length > 0) {
-          log.innerHTML = msgs.map(m => `<div class="msg msg--${m.from}">${m.text}</div>`).join('');
-          log.scrollTop = log.scrollHeight;
+        const msgs = await api(`/api/chat/${encodeURIComponent(token)}`);
+        if (!Array.isArray(msgs)) return;
+
+        const wasAtBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 30;
+
+        if (msgs.length > 0) {
+          log.innerHTML = msgs.map(m =>
+            `<div class="msg msg--${escapeHtml(m.from)}">${escapeHtml(m.text)}</div>`
+          ).join('');
         } else {
-          if (log.innerHTML.includes('Загрузка')) {
-             log.innerHTML = '<div class="chat__empty">Пока пусто</div>';
-          }
+          log.innerHTML = '<div class="chat__empty">Пока пусто</div>';
         }
-      } catch (e) {}
+
+        if (wasAtBottom) log.scrollTop = log.scrollHeight;
+      } catch (e) {
+        console.warn('loadChat failed:', e);
+      }
     }
   </script>
 </body>
