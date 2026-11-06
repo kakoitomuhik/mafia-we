@@ -126,7 +126,6 @@
     }
 
     function startIntervals() {
-      // Проверяем статус раз в 10 секунд (снижаем нагрузку)
       setInterval(async () => {
         try {
           const stateRes = await fetch('/api/state');
@@ -241,7 +240,6 @@
               <div class="card__legend">${displayLegend}</div>
               <div class="card__quote">«${card.quote}»</div>
 
-              <!-- БЛОК ГОЛОСОВАНИЯ -->
               <div class="card__vote" id="vote-container" style="display: none; margin-top: 15px; padding: 15px; background: rgba(30, 50, 80, 0.95); border: 1px solid #4a7fff; border-radius: 12px;">
                 <h3 style="color: #7aa7ff; margin-bottom: 10px; font-size: 16px; text-align: center;">Голосование открыто</h3>
                 <div id="vote-targets" style="display: flex; flex-direction: column; gap: 8px;"></div>
@@ -258,7 +256,6 @@
               </div>
             `}
 
-            <!-- ЧАТ (ЕДИНЫЙ ДЛЯ ВСЕХ) -->
             <div class="chat">
               <h4>Связаться с Благодетелем</h4>
               <div class="chat__log" id="log"><div class="chat__empty">Загрузка...</div></div>
@@ -284,17 +281,32 @@
         </div>
       `;
 
-      if (card.imageKey) {
-        const imgEl = document.getElementById('portrait-img');
-        if (imgEl) {
-          const genderSuffix = isFemale ? '_f' : '_m';
-          const key = card.imageKey + genderSuffix;
+      // ЗАГРУЗКА КАРТИНКИ
+      const imgEl = document.getElementById('portrait-img');
+      if (imgEl) {
+        const genderSuffix = isFemale ? '_f' : '_m';
+        const key = card.imageKey + genderSuffix;
+        
+        // Если это Хранитель (М-15), читаем картинку из текстового файла
+        if (card.role === "Хранитель") {
+          const txtFileName = isFemale ? 'hranitel_f.txt' : 'hranitel_m.txt';
+          fetch(`/${txtFileName}`)
+            .then(res => res.text())
+            .then(base64 => {
+              imgEl.src = base64;
+            })
+            .catch(() => {
+              // Если файл не найден, пробуем обычную картинку
+              imgEl.src = `/${IMAGES[key] || `${card.imageKey}${genderSuffix}.png`}`;
+            });
+        } else {
+          // Для остальных ищем обычные файлы
           const fileName = IMAGES[key] || `${card.imageKey}${genderSuffix}.png`;
           imgEl.src = `/${fileName}`;
         }
       }
 
-      // Логика голосования
+      // ЛОГИКА ГОЛОСОВАНИЯ
       const voteContainer = document.getElementById('vote-container');
       const voteTargets = document.getElementById('vote-targets');
       
