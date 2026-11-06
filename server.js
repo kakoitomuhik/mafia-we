@@ -9,17 +9,17 @@ const CARDS_FILE = path.join(__dirname, 'public', 'cards.json');
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-let state = {}; 
-let chat = {}; 
-let votes = {}; 
+let state = {};
+let chat = {};
+let votes = {};
 let currentNight = 1;
-let currentMode = 10; 
+let currentMode = 10;
 let gameCards = null;
 let isVotingOpen = false;
 
 const PROFESSIONS = [
-  "Инженер", "Архитектор", "Учитель", "Бухгалтер", 
-  "Программист", "Электрик", "Сварщик", "Агроном", 
+  "Инженер", "Архитектор", "Учитель", "Бухгалтер",
+  "Программист", "Электрик", "Сварщик", "Агроном",
   "Геолог", "Машинист", "Библиотекарь", "Химик"
 ];
 
@@ -51,36 +51,51 @@ const IMAGES = {
 };
 
 function shuffle(array) {
-  let currentIndex = array.length, randomIndex;
+  const arr = [...array];
+  let currentIndex = arr.length, randomIndex;
   while (currentIndex !== 0) {
     randomIndex = Math.floor(Math.random() * currentIndex);
     currentIndex--;
-    [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+    [arr[currentIndex], arr[randomIndex]] = [arr[randomIndex], arr[currentIndex]];
   }
-  return array;
+  return arr;
+}
+
+function loadCardsFromDisk() {
+  try {
+    const raw = fs.readFileSync(CARDS_FILE, 'utf8');
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      console.error('cards.json должен содержать массив');
+      return null;
+    }
+    return parsed;
+  } catch (e) {
+    console.error('Не удалось загрузить cards.json:', e.message);
+    return null;
+  }
 }
 
 function getCardsWithProfessions() {
-  if (gameCards) return gameCards; 
+  if (gameCards) return gameCards;
 
-  let allCards = JSON.parse(fs.readFileSync(CARDS_FILE, 'utf8'));
-  let selectedCards = [];
-  
-  if (currentMode === 10) {
-    selectedCards = allCards.filter(c => c.id <= 10); 
-  } else {
-    selectedCards = allCards.slice(0, 15);
-  }
+  const allCards = loadCardsFromDisk();
+  if (!allCards) return [];
 
-  const shuffledProfs = shuffle([...PROFESSIONS]);
-  const shuffledLetters = shuffle([...CIPHER_LETTERS]);
+  // Берём нужное количество карт по индексу, а не по id
+  const selectedCards = currentMode === 10
+    ? allCards.slice(0, 10)
+    : allCards.slice(0, 15);
+
+  const shuffledProfs = shuffle(PROFESSIONS);
+  const shuffledLetters = shuffle(CIPHER_LETTERS);
 
   selectedCards.forEach((card, index) => {
     card.alibiProfession = shuffledProfs[index % shuffledProfs.length];
     const letter = shuffledLetters[index % shuffledLetters.length];
     const number = Math.floor(Math.random() * 999) + 1;
     card.randomCipher = `${letter}-${number}`;
-    
+
     if (card.role === "Строитель" && GOALS[card.id]) {
       const goal = GOALS[card.id];
       card.imageKey = goal.img;
@@ -115,48 +130,120 @@ function getCardsWithProfessions() {
   return gameCards;
 }
 
-app.get('/api/cards', (req, res) => res.json(getCardsWithProfessions()));
-app.get('/api/state', (_, res) => res.json({ cards: state, night: currentNight, mode: currentMode }));
-app.post('/api/state/:id', (req, res) => {
-  state[req.params.id] = { ...(state[req.params.id] || {}), ...req.body };
-  res.json(state[req.params.id]);
+// ---------- Карты ----------
+app.get('/api/cards', (req, res) => {
+  res.json(getCardsWithProfessions());
 });
 
-app.get('/api/chat', (_, res) => {
+// ---------- Состояние игры ----------
+app.get('/api/state', (req, res) => {
+  res.json({ cards: state, night: currentNight, mode: currentMode });
+});
+
+app.post('/api/state/:id', (req, res) => {
+  const id = req.params.id;
+  if (!req.body || typeof req.body !== 'object') {
+    return res.status(400).json({ error: 'invalid body' });
+  }
+  state[id] = { ...(state[id] || {}), ...req.body };
+  res.json(state[id]);
+});
+
+// ---------- Чат ----------
+// ВНИМАНИЕ: эндпоинт отдаёт роли всех карт. Использовать только для админки.
+// Если клиент-игрок обращается к /api/chat — роль утекает. Рекомендую защитить.
+app.get('/api/chat', (req, res) => {
+  // Простейшая защита: только при наличии заголовка X-Admin-Token.
+  // Если у вас другая схема авторизации — замените проверку.
+  const adminToken = process.env.ADMIN_TOKEN;
+  if (adminToken && req.headers['x-admin-token'] !== adminToken) {
+    return res.status(403).json({ error: 'forbidden' });
+  }
   res.json(getCardsWithProfessions().map(c => ({
-    token: c.token, cipher: c.randomCipher || c.cipher, role: c.role, alibiProfession: c.alibiProfession,
+    token: c.token,
+    cipher: c.randomCipher || c.cipher,
+    role: c.role,
+    alibiProfession: c.alibiProfession,
     messages: chat[c.token] || []
   })));
 });
-app.get('/api/chat/:token', (req, res) => res.json(chat[req.params.token] || []));
-app.post('/api/chat/:token', (req, res) => {
-  const text = (req.body.text || '').trim();
-  if (!text) return res.status(400).json({ error: 'empty' });
-  (chat[req.params.token] = chat[req.params.token] || []).push({ from: 'player', text, ts: Date.now() });
-  res.json({ ok: true });
+
+app.get('/api/chat/:token', (req, res) => {
+  res.json(chat[req.params.token] || []);
 });
-app.post('/api/chat/:token/reply', (req, res) => {
-  const text = (req.body.text || '').trim();
+
+app.post('/api/chat/:token', (req, res) => {
+  const text = (req.body && req.body.text ? String(req.body.text) : '').trim();
   if (!text) return res.status(400).json({ error: 'empty' });
-  (chat[req.params.token] = chat[req.params.token] || []).push({ from: 'admin', text, ts: Date.now() });
+  (chat[req.params.token] = chat[req.params.token] || []).push({
+    from: 'player', text, ts: Date.now()
+  });
   res.json({ ok: true });
 });
 
-app.get('/api/votes', (_, res) => res.json(votes));
+app.post('/api/chat/:token/reply', (req, res) => {
+  const text = (req.body && req.body.text ? String(req.body.text) : '').trim();
+  if (!text) return res.status(400).json({ error: 'empty' });
+  (chat[req.params.token] = chat[req.params.token] || []).push({
+    from: 'admin', text, ts: Date.now()
+  });
+  res.json({ ok: true });
+});
+
+// ---------- Голосование ----------
+app.get('/api/votes', (req, res) => res.json(votes));
+
 app.post('/api/vote', (req, res) => {
-  if (req.body.voterId) votes[req.body.voterId] = req.body.targetId;
+  const { voterId, targetId } = req.body || {};
+  if (!voterId || !targetId) {
+    return res.status(400).json({ error: 'voterId and targetId required' });
+  }
+  votes[voterId] = targetId;
   res.json({ ok: true, votes });
 });
-app.post('/api/reset-votes', (_, res) => { votes = {}; res.json({ ok: true }); });
 
-app.get('/api/voting-status', (_, res) => res.json({ isVotingOpen }));
-app.post('/api/voting-status', (req, res) => { isVotingOpen = req.body.isVotingOpen; res.json({ isVotingOpen }); });
-
-app.post('/api/set-mode', (req, res) => { currentMode = req.body.mode; gameCards = null; res.json({ mode: currentMode }); });
-app.post('/api/next-night', (_, res) => { currentNight++; res.json({ night: currentNight }); });
-app.post('/api/reset', (_, res) => {
-  state = {}; chat = {}; votes = {}; currentNight = 1; isVotingOpen = false; gameCards = null; 
+app.post('/api/reset-votes', (req, res) => {
+  votes = {};
   res.json({ ok: true });
 });
 
-app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
+app.get('/api/voting-status', (req, res) => res.json({ isVotingOpen }));
+
+app.post('/api/voting-status', (req, res) => {
+  if (!req.body || typeof req.body.isVotingOpen === 'undefined') {
+    return res.status(400).json({ error: 'isVotingOpen required' });
+  }
+  isVotingOpen = Boolean(req.body.isVotingOpen);
+  res.json({ isVotingOpen });
+});
+
+// ---------- Управление игрой ----------
+app.post('/api/set-mode', (req, res) => {
+  const mode = Number(req.body && req.body.mode);
+  if (![10, 15].includes(mode)) {
+    return res.status(400).json({ error: 'mode must be 10 or 15' });
+  }
+  currentMode = mode;
+  gameCards = null;
+  res.json({ mode: currentMode });
+});
+
+app.post('/api/next-night', (req, res) => {
+  currentNight++;
+  res.json({ night: currentNight });
+});
+
+app.post('/api/reset', (req, res) => {
+  state = {};
+  chat = {};
+  votes = {};
+  currentNight = 1;
+  isVotingOpen = false;
+  gameCards = null;
+  // currentMode намеренно не сбрасываем — режим выбирает ведущий.
+  res.json({ ok: true });
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
+});
