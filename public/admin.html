@@ -8,22 +8,21 @@
 </head>
 <body>
   <div class="admin">
-    <h1>Благодетель</h1>
-    
+    <h1>Благодетель <span id="night-label" style="font-size:16px; color:#7a879e; font-weight:400;"></span></h1>
+
     <div class="tabs">
       <button class="tab tab--active" id="btn-players" onclick="showTab('players')">Игроки</button>
       <button class="tab" id="btn-chats" onclick="showTab('chats')">Вопросы</button>
       <button class="tab" id="btn-votes" onclick="showTab('votes')">Голосование</button>
       <button class="tab" id="btn-notes" onclick="showTab('notes')">Заметки</button>
     </div>
-    
+
     <div id="tab-players" class="tab-panel active">
       <div class="mode-control">
         <label>Режим игры:</label>
         <select id="mode-select">
           <option value="10">10 игроков</option>
           <option value="15">15 игроков</option>
-          <option value="20">20 игроков</option>
         </select>
         <button id="next-night" class="btn-ghost" style="border-color: #4a7fff; color: #4a7fff; margin: 0;">Следующая ночь 🌙</button>
         <button id="toggle-vote" class="btn-ghost" style="border-color: #ffd47a; color: #ffd47a; margin: 0;">Открыть/Закрыть голосование</button>
@@ -36,12 +35,12 @@
       </div>
 
       <div id="list" class="admin__list">Нажмите "Обновить данные"</div>
-      
+
       <div class="control-buttons">
         <button id="reset" class="btn-ghost danger">Сбросить игру</button>
       </div>
     </div>
-    
+
     <div id="tab-chats" class="tab-panel hidden">
       <div id="chats" class="chats">Нажмите "Обновить данные"</div>
     </div>
@@ -56,31 +55,49 @@
     <div id="tab-notes" class="tab-panel hidden">
       <div class="notes-block" style="max-width: 100%;">
         <textarea class="notes-textarea" id="global-notes" placeholder="Записывайте сюда всё..."></textarea>
-        <button class="btn-save-notes" onclick="saveGlobalNotes()">Сохранить заметки</button>
+        <button class="btn-save-notes" onclick="saveGlobalNotes(event)">Сохранить заметки</button>
       </div>
     </div>
   </div>
 
   <script>
     let cardsData = [];
-    let stateData = { cards: {}, night: 1, mode: 10, isMassacre: false };
+    let stateData = { cards: {}, night: 1, mode: 10 };
     let chatData = [];
     let votesData = {};
     let votingStatus = false;
 
+    // ---------- Утилиты ----------
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function roleLabel(role) {
+      return role === "Икона сопротивления" ? "Строитель (Икона)" : role;
+    }
+
+    // ---------- Табы ----------
     function showTab(tabName) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab--active'));
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
-      
+
       document.getElementById('btn-' + tabName).classList.add('tab--active');
       document.getElementById('tab-' + tabName).classList.remove('hidden');
-      
+
       if (tabName === 'chats') renderChats();
       if (tabName === 'votes') renderVotes();
-      if (tabName === 'notes') document.getElementById('global-notes').value = stateData['global_notes'] || "";
+      if (tabName === 'notes') {
+        const g = stateData['global_notes'];
+        document.getElementById('global-notes').value = (g && g.notes) || "";
+      }
     }
 
-    // Загружаем ВСЕ данные по нажатию кнопки
+    // ---------- Загрузка всех данных ----------
     async function loadData() {
       try {
         const resCards = await fetch('/api/cards');
@@ -90,54 +107,73 @@
         if (resState.ok) stateData = await resState.json();
 
         const resChat = await fetch('/api/chat');
-        if (resChat.ok) chatData = await resChat.json();
+        if (resChat.ok) {
+          chatData = await resChat.json();
+        } else {
+          console.warn('Не удалось загрузить чаты, статус:', resChat.status);
+          chatData = [];
+        }
+
+        const resVotes = await fetch('/api/votes');
+        if (resVotes.ok) votesData = await resVotes.json();
 
         const voteRes = await fetch('/api/voting-status');
         if (voteRes.ok) {
           const vs = await voteRes.json();
-          votingStatus = vs.isVotingOpen;
+          votingStatus = Boolean(vs.isVotingOpen);
         }
 
-        document.getElementById('mode-select').value = stateData.mode || 10;
+        document.getElementById('mode-select').value = String(stateData.mode || 10);
+        document.getElementById('night-label').textContent = `· ночь ${stateData.night || 1}`;
+
         renderPlayers();
         renderChats();
         renderVotes();
-
-        if (votingStatus) {
-          document.getElementById('toggle-vote').style.borderColor = "#ff5252";
-          document.getElementById('toggle-vote').style.color = "#ff9a9a";
-        } else {
-          document.getElementById('toggle-vote').style.borderColor = "#ffd47a";
-          document.getElementById('toggle-vote').style.color = "#ffd47a";
-        }
-
+        updateVoteButton();
       } catch (e) {
+        console.error('Ошибка загрузки данных:', e);
         alert("Ошибка загрузки данных с сервера!");
       }
     }
 
+    function updateVoteButton() {
+      const btn = document.getElementById('toggle-vote');
+      if (votingStatus) {
+        btn.style.borderColor = "#ff5252";
+        btn.style.color = "#ff9a9a";
+      } else {
+        btn.style.borderColor = "#ffd47a";
+        btn.style.color = "#ffd47a";
+      }
+    }
+
+    // ---------- Игроки ----------
     function renderPlayers() {
       const listEl = document.getElementById('list');
       if (!cardsData || cardsData.length === 0) {
         listEl.innerHTML = '<span style="color:#889">Нет данных. Нажмите "Сбросить игру".</span>';
         return;
       }
-      
+
       listEl.innerHTML = cardsData.map(c => {
         const st = stateData.cards[c.id] || { dead: false, personalWinDone: false };
-        const dot = st.online ? '<span style="color:#69f0ae; margin-right:8px;">●</span>' : '<span style="color:#55617a; margin-right:8px;">○</span>';
-        const role = c.role === "Икона сопротивления" ? "Строитель (Икона)" : c.role;
-        
+        const dot = st.online
+          ? '<span style="color:#69f0ae; margin-right:8px;">●</span>'
+          : '<span style="color:#55617a; margin-right:8px;">○</span>';
+        const cipher = escapeHtml(c.randomCipher || c.cipher || '—');
+        const role = escapeHtml(roleLabel(c.role));
+        const prof = escapeHtml(c.alibiProfession || '—');
+
         return `
           <div class="admin__row">
             <div>
-              <strong>${dot} ${c.randomCipher || c.cipher} · ${role}</strong>
-              <small>${c.alibiProfession || '—'}</small>
+              <strong>${dot} ${cipher} · ${role}</strong>
+              <small>${prof}</small>
             </div>
-            <button class="btn-dead ${st.dead ? 'on' : ''}" onclick="toggleState(${c.id}, 'dead', ${!st.dead})">
+            <button class="btn-dead ${st.dead ? 'on' : ''}" onclick="toggleState(${Number(c.id)}, 'dead', ${!st.dead})">
               ${st.dead ? 'Мёртв' : 'Жив'}
             </button>
-            <button class="btn-win ${st.personalWinDone ? 'on' : ''}" onclick="toggleState(${c.id}, 'personalWinDone', ${!st.personalWinDone})">
+            <button class="btn-win ${st.personalWinDone ? 'on' : ''}" onclick="toggleState(${Number(c.id)}, 'personalWinDone', ${!st.personalWinDone})">
               ${st.personalWinDone ? 'Победа' : '—'}
             </button>
           </div>
@@ -145,11 +181,17 @@
       }).join('');
     }
 
+    // ---------- Чаты ----------
     function renderChats() {
       const chatsEl = document.getElementById('chats');
       if (!chatsEl) return;
+      if (!chatData || chatData.length === 0) {
+        chatsEl.innerHTML = '<div style="color:#7a879e; padding:20px; text-align:center;">Данные не загружены.</div>';
+        return;
+      }
+
       const withMsgs = chatData.filter(c => c.messages && c.messages.length > 0);
-      
+
       if (withMsgs.length === 0) {
         chatsEl.innerHTML = '<div style="color:#7a879e; padding:20px; text-align:center;">Пока никто не задал вопросов.</div>';
         return;
@@ -157,22 +199,24 @@
 
       chatsEl.innerHTML = withMsgs.map(c => {
         const msgsHtml = c.messages.map(m => `
-          <div class="msg msg--${m.from}">${m.text}</div>
+          <div class="msg msg--${escapeHtml(m.from)}">${escapeHtml(m.text)}</div>
         `).join('');
 
-        let role = c.role === "Икона сопротивления" ? "Строитель" : c.role;
+        const cipher = escapeHtml(c.randomCipher || c.cipher || '—');
+        const role = escapeHtml(roleLabel(c.role));
+        const tokenSafe = JSON.stringify(String(c.token || ''));
 
         return `
           <div class="chat-block">
             <div class="chat-block__head">
-              <strong>${c.randomCipher || c.cipher} · ${role}</strong>
+              <strong>${cipher} · ${role}</strong>
             </div>
             <div class="chat__log" style="max-height:200px; overflow-y:auto; margin-bottom:10px;">
               ${msgsHtml}
             </div>
             <div class="chat__input">
-              <input type="text" id="reply-${c.token}" placeholder="Ответить..." />
-              <button onclick="sendReply('${c.token}')">Ответить</button>
+              <input type="text" id="reply-${escapeHtml(c.token)}" placeholder="Ответить..." />
+              <button onclick="sendReply(${tokenSafe})">Ответить</button>
             </div>
           </div>
         `;
@@ -181,109 +225,165 @@
 
     async function sendReply(token) {
       const inp = document.getElementById('reply-' + token);
+      if (!inp) return;
       const text = inp.value.trim();
       if (!text) return;
-      await fetch(`/api/chat/${token}/reply`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
-      });
-      loadData();
-    }
-
-    async function renderVotes() {
-      const votesListEl = document.getElementById('votes-list');
-      if (!votesListEl) return;
-      
       try {
-        const r = await fetch('/api/votes');
-        if (!r.ok) throw new Error();
-        const votesData = await r.json();
-        
-        if (!cardsData || cardsData.length === 0) {
-          votesListEl.innerHTML = '<span style="color:#889">Нет данных.</span>';
-          return;
-        }
-        
-        votesListEl.innerHTML = cardsData.map(c => {
-          if ((stateData.cards[c.id] || {}).dead) return '';
-          const role = c.role === "Икона сопротивления" ? "Строитель (Икона)" : c.role;
-          const vote = votesData[c.id];
-          let text = "Не голосовал";
-          if (vote === null) text = "Воздержался";
-          else if (vote !== undefined) {
-            const t = cardsData.find(x => x.id === vote);
-            text = t ? `За ${t.randomCipher || t.cipher}` : "Неизвестно";
-          }
-          return `
-            <div class="admin__row" style="grid-template-columns: 1fr auto;">
-              <div><strong>${c.randomCipher || c.cipher} · ${role}</strong><small>Голос: <span style="color:#69f0ae;">${text}</span></small></div>
-            </div>
-          `;
-        }).join('');
-      } catch(e) {
-        votesListEl.innerHTML = '<span style="color:red">Ошибка загрузки голосов.</span>';
+        await fetch(`/api/chat/${encodeURIComponent(token)}/reply`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+        await loadData();
+      } catch (e) {
+        console.error('Ошибка отправки ответа:', e);
+        alert('Не удалось отправить ответ');
       }
     }
 
-    async function saveGlobalNotes() {
+    // ---------- Голоса ----------
+    function renderVotes() {
+      const votesListEl = document.getElementById('votes-list');
+      if (!votesListEl) return;
+
+      if (!cardsData || cardsData.length === 0) {
+        votesListEl.innerHTML = '<span style="color:#889">Нет данных.</span>';
+        return;
+      }
+
+      votesListEl.innerHTML = cardsData.map(c => {
+        if ((stateData.cards[c.id] || {}).dead) return '';
+        const role = escapeHtml(roleLabel(c.role));
+        const cipher = escapeHtml(c.randomCipher || c.cipher || '—');
+        const vote = votesData[c.id];
+        let text = "Не голосовал";
+        if (vote === null) text = "Воздержался";
+        else if (vote !== undefined) {
+          const t = cardsData.find(x => x.id === vote);
+          text = t ? `За ${escapeHtml(t.randomCipher || t.cipher)}` : "Неизвестно";
+        }
+        return `
+          <div class="admin__row" style="grid-template-columns: 1fr auto;">
+            <div>
+              <strong>${cipher} · ${role}</strong>
+              <small>Голос: <span style="color:#69f0ae;">${text}</span></small>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ---------- Заметки ----------
+    async function saveGlobalNotes(ev) {
       const text = document.getElementById('global-notes').value;
-      await fetch(`/api/state/global_notes`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notes: text })
-      });
-      const btn = event.target;
-      btn.innerText = "Сохранено!";
-      setTimeout(() => btn.innerText = "Сохранить заметки", 1500);
+      try {
+        await fetch(`/api/state/global_notes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notes: text })
+        });
+        stateData['global_notes'] = { notes: text };
+        const btn = ev.target;
+        btn.innerText = "Сохранено!";
+        setTimeout(() => btn.innerText = "Сохранить заметки", 1500);
+      } catch (e) {
+        console.error('Ошибка сохранения заметок:', e);
+        alert('Не удалось сохранить заметки');
+      }
     }
 
+    // ---------- Состояние игрока ----------
     async function toggleState(id, field, value) {
-      await fetch(`/api/state/${id}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [field]: value })
-      });
-      loadData();
+      try {
+        await fetch(`/api/state/${Number(id)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [field]: value })
+        });
+        await loadData();
+      } catch (e) {
+        console.error('Ошибка обновления состояния:', e);
+        alert('Не удалось обновить состояние игрока');
+      }
     }
 
-    // --- ОБРАБОТЧИКИ КНОПОК ---
+    // ---------- Обработчики кнопок ----------
     document.getElementById('mode-select').onchange = async (e) => {
-      await fetch('/api/set-mode', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: parseInt(e.target.value) })
-      });
-      loadData();
+      try {
+        const mode = parseInt(e.target.value, 10);
+        const res = await fetch('/api/set-mode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode })
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert('Не удалось сменить режим: ' + (err.error || res.status));
+        }
+        await loadData();
+      } catch (err) {
+        console.error('Ошибка смены режима:', err);
+      }
     };
 
     document.getElementById('next-night').onclick = async () => {
-      const res = await fetch('/api/next-night', { method: 'POST' });
-      const data = await res.json();
-      
-      if (data.isMassacre) {
-        alert("ВНИМАНИЕ! ТРЕТЬЯ НОЧЬ. Ни один мафиози не казнен. Сопротивление устраивает РЕЗНЮ! Они выбирают ДВУХ жертв.");
+      try {
+        const res = await fetch('/api/next-night', { method: 'POST' });
+        const data = await res.json();
+
+        if (data.isMassacre) {
+          alert("ВНИМАНИЕ! ТРЕТЬЯ НОЧЬ. Ни один мафиози не казнён. Сопротивление устраивает РЕЗНЮ! Они выбирают ДВУХ жертв.");
+        } else if (data.night === 3) {
+          alert("Третья ночь. Проверьте: если никто из мафии не казнён — наступает резня.");
+        }
+
+        await loadData();
+      } catch (e) {
+        console.error('Ошибка перехода ночи:', e);
+        alert('Не удалось перейти к следующей ночи');
       }
-      
-      loadData();
     };
 
     document.getElementById('toggle-vote').onclick = async () => {
-      await fetch('/api/voting-status', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isVotingOpen: !votingStatus })
-      });
-      loadData();
+      try {
+        const newVal = !votingStatus;
+        votingStatus = newVal;
+        updateVoteButton();
+        await fetch('/api/voting-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isVotingOpen: newVal })
+        });
+        await loadData();
+      } catch (e) {
+        console.error('Ошибка переключения голосования:', e);
+        alert('Не удалось переключить голосование');
+      }
     };
 
     document.getElementById('reset').onclick = async () => {
       if (!confirm('Сбросить игру и раздать новые роли?')) return;
-      await fetch('/api/reset', { method: 'POST' });
-      loadData();
+      try {
+        await fetch('/api/reset', { method: 'POST' });
+        await loadData();
+      } catch (e) {
+        console.error('Ошибка сброса игры:', e);
+        alert('Не удалось сбросить игру');
+      }
     };
 
     document.getElementById('reset-votes').onclick = async () => {
-      await fetch('/api/reset-votes', { method: 'POST' });
-      renderVotes();
+      try {
+        await fetch('/api/reset-votes', { method: 'POST' });
+        votesData = {};
+        renderVotes();
+      } catch (e) {
+        console.error('Ошибка сброса голосов:', e);
+        alert('Не удалось сбросить голоса');
+      }
     };
 
-    // При запуске сразу загружаем данные один раз (без интервала!)
+    // ---------- Старт ----------
     loadData();
   </script>
 </body>
