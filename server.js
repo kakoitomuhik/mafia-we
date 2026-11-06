@@ -4,7 +4,8 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const CARDS_FILE = path.join(__dirname, 'public', 'cards.json');
+// cards.json ВЫНЕСЕН из public/ — иначе раздаётся статикой и роли утекают
+const CARDS_FILE = path.join(__dirname, 'data', 'cards.json');
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -16,6 +17,7 @@ let currentNight = 1;
 let currentMode = 10;
 let gameCards = null;
 let isVotingOpen = false;
+let isMassacre = false;
 
 const PROFESSIONS = [
   "Инженер", "Архитектор", "Учитель", "Бухгалтер",
@@ -37,26 +39,13 @@ const GOALS = {
   14: { img: "archivist", name: "Архивариус", nameF: "Архивариус", task: "Узнай и запомни три факта о других игроках. Назови их ведущему в конце игры.", quote: "Я собираю то, что Система пытается стереть. Ваши страхи — это единственное, что осталось настоящим." }
 };
 
-const IMAGES = {
-  "true_numer_m": "01a1a425-a8dd-72d6-8da4-465b8e72eba8.jpg",
-  "true_numer_f": "01a1a428-a657-74ac-b124-098eebcbfebc (1).jpg",
-  "cultist_m": "01a1a44d-a290-7143-91d8-23e925198ecc.jpg",
-  "cultist_f": "01a1a44a-9206-7d07-8501-11d84f3c1f48.jpg",
-  "order_m": "01a1a460-c164-7efc-b058-e4b9ad86255c.jpg",
-  "order_f": "Polish_20261104_052337346.jpg",
-  "archivist_m": "01a1a458-e770-74c0-b7c2-5f46367339e6.jpg",
-  "archivist_f": "01a1a459-f956-7062-9d07-f9c1cab27a50.jpg",
-  "dissident2_m": "01a1a438-9f59-70f0-a68a-e9828fe1f144.jpg",
-  "dissident2_f": "Polish_20261104_045710421.jpg"
-};
-
 function shuffle(array) {
   const arr = [...array];
-  let currentIndex = arr.length, randomIndex;
-  while (currentIndex !== 0) {
-    randomIndex = Math.floor(Math.random() * currentIndex);
-    currentIndex--;
-    [arr[currentIndex], arr[randomIndex]] = [arr[randomIndex], arr[currentIndex]];
+  let i = arr.length, j;
+  while (i !== 0) {
+    j = Math.floor(Math.random() * i);
+    i--;
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
 }
@@ -82,10 +71,11 @@ function getCardsWithProfessions() {
   const allCards = loadCardsFromDisk();
   if (!allCards) return [];
 
-  // Берём нужное количество карт по индексу, а не по id
-  const selectedCards = currentMode === 10
-    ? allCards.slice(0, 10)
-    : allCards.slice(0, 15);
+  const limit = currentMode;
+  if (allCards.length < limit) {
+    console.error(`В cards.json только ${allCards.length} карт, а режим ${currentMode}`);
+  }
+  const selectedCards = allCards.slice(0, limit);
 
   const shuffledProfs = shuffle(PROFESSIONS);
   const shuffledLetters = shuffle(CIPHER_LETTERS);
@@ -130,14 +120,49 @@ function getCardsWithProfessions() {
   return gameCards;
 }
 
+// ---------- Проверка админ-доступа ----------
+function isAdmin(req) {
+  const adminToken = process.env.ADMIN_TOKEN;
+  if (!adminToken) return true; // защита выключена
+  return req.headers['x-admin-token'] === adminToken;
+}
+
 // ---------- Карты ----------
+// С ?t=TOKEN — отдаёт ОДНУ карту игроку (его собственную).
+// Без t — только админ, отдаёт все карты.
 app.get('/api/cards', (req, res) => {
-  res.json(getCardsWithProfessions());
+  const all = getCardsWithProfessions();
+  const t = req.query.t;
+
+  if (t) {
+    const one = all.find(c => c.token === t);
+    if (!one) return res.status(404).json({ error: 'card not found' });
+    return res.json(one);
+  }
+
+  if (!isAdmin(req)) return res.status(403).json({ error: 'forbidden' });
+  res.json(all);
+});
+
+// Публичный список игроков — только id и шифр, без ролей.
+// Используется для списка целей голосования.
+app.get('/api/players', (req, res) => {
+  const all = getCardsWithProfessions();
+  res.json(all.map(c => ({
+    id: c.id,
+    cipher: c.cipher,
+    randomCipher: c.randomCipher
+  })));
 });
 
 // ---------- Состояние игры ----------
 app.get('/api/state', (req, res) => {
-  res.json({ cards: state, night: currentNight, mode: currentMode });
+  res.json({
+    cards: state,
+    night: currentNight,
+    mode: currentMode,
+    isMassacre
+  });
 });
 
 app.post('/api/state/:id', (req, res) => {
@@ -150,24 +175,20 @@ app.post('/api/state/:id', (req, res) => {
 });
 
 // ---------- Чат ----------
-// ВНИМАНИЕ: эндпоинт отдаёт роли всех карт. Использовать только для админки.
-// Если клиент-игрок обращается к /api/chat — роль утекает. Рекомендую защитить.
+// Админ-эндпоинт: все чаты со всеми ролями. Защищён X-Admin-Token.
 app.get('/api/chat', (req, res) => {
-  // Простейшая защита: только при наличии заголовка X-Admin-Token.
-  // Если у вас другая схема авторизации — замените проверку.
-  const adminToken = process.env.ADMIN_TOKEN;
-  if (adminToken && req.headers['x-admin-token'] !== adminToken) {
-    return res.status(403).json({ error: 'forbidden' });
-  }
+  if (!isAdmin(req)) return res.status(403).json({ error: 'forbidden' });
   res.json(getCardsWithProfessions().map(c => ({
     token: c.token,
     cipher: c.randomCipher || c.cipher,
+    randomCipher: c.randomCipher,
     role: c.role,
     alibiProfession: c.alibiProfession,
     messages: chat[c.token] || []
   })));
 });
 
+// Чат игрока: по токену. Отдаёт только его сообщения — без ролей.
 app.get('/api/chat/:token', (req, res) => {
   res.json(chat[req.params.token] || []);
 });
@@ -182,6 +203,7 @@ app.post('/api/chat/:token', (req, res) => {
 });
 
 app.post('/api/chat/:token/reply', (req, res) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'forbidden' });
   const text = (req.body && req.body.text ? String(req.body.text) : '').trim();
   if (!text) return res.status(400).json({ error: 'empty' });
   (chat[req.params.token] = chat[req.params.token] || []).push({
@@ -193,16 +215,18 @@ app.post('/api/chat/:token/reply', (req, res) => {
 // ---------- Голосование ----------
 app.get('/api/votes', (req, res) => res.json(votes));
 
+// targetId === null — воздержание. targetId === undefined — ошибка.
 app.post('/api/vote', (req, res) => {
   const { voterId, targetId } = req.body || {};
-  if (!voterId || !targetId) {
-    return res.status(400).json({ error: 'voterId and targetId required' });
+  if (!voterId || targetId === undefined) {
+    return res.status(400).json({ error: 'voterId and targetId required (targetId=null for abstain)' });
   }
-  votes[voterId] = targetId;
+  votes[voterId] = targetId === null ? null : Number(targetId);
   res.json({ ok: true, votes });
 });
 
 app.post('/api/reset-votes', (req, res) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'forbidden' });
   votes = {};
   res.json({ ok: true });
 });
@@ -210,6 +234,7 @@ app.post('/api/reset-votes', (req, res) => {
 app.get('/api/voting-status', (req, res) => res.json({ isVotingOpen }));
 
 app.post('/api/voting-status', (req, res) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'forbidden' });
   if (!req.body || typeof req.body.isVotingOpen === 'undefined') {
     return res.status(400).json({ error: 'isVotingOpen required' });
   }
@@ -219,6 +244,7 @@ app.post('/api/voting-status', (req, res) => {
 
 // ---------- Управление игрой ----------
 app.post('/api/set-mode', (req, res) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'forbidden' });
   const mode = Number(req.body && req.body.mode);
   if (![10, 15].includes(mode)) {
     return res.status(400).json({ error: 'mode must be 10 or 15' });
@@ -229,18 +255,26 @@ app.post('/api/set-mode', (req, res) => {
 });
 
 app.post('/api/next-night', (req, res) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'forbidden' });
   currentNight++;
-  res.json({ night: currentNight });
+
+  // Резня: третья ночь и никто ещё не казнён.
+  // Уточните правило: сейчас — "нет ни одного dead".
+  const anyDead = Object.values(state).some(s => s && s.dead);
+  isMassacre = currentNight === 3 && !anyDead;
+
+  res.json({ night: currentNight, isMassacre });
 });
 
 app.post('/api/reset', (req, res) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'forbidden' });
   state = {};
   chat = {};
   votes = {};
   currentNight = 1;
   isVotingOpen = false;
+  isMassacre = false;
   gameCards = null;
-  // currentMode намеренно не сбрасываем — режим выбирает ведущий.
   res.json({ ok: true });
 });
 
