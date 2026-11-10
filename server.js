@@ -37,20 +37,17 @@ let currentMode = 10;
 let isVotingOpen = false;
 let isMassacre = false;
 
-// 1. Карты
 app.get('/api/cards', (req, res) => {
   const all = loadCards();
   const t = req.query.t;
-  
   if (t) {
     const one = all.find(c => c.token === t);
     if (one) {
-      // Добавляем недостающие поля для красивой отрисовки
       if (!one.alibiProfession) one.alibiProfession = "Гражданин";
       if (!one.randomCipher) one.randomCipher = "А-" + Math.floor(Math.random() * 999);
       return res.json(one);
     }
-    return res.status(404).json({ error: 'card not found' });
+    return res.status(404).json({ error: 'not found' });
   }
   res.json(all);
 });
@@ -72,29 +69,22 @@ app.post('/api/state/:id', (req, res) => {
 app.get('/api/chat', (req, res) => {
   const all = loadCards();
   res.json(all.map(c => ({
-    token: c.token, 
-    cipher: c.randomCipher || c.cipher || 'Нумер', 
-    role: c.role, 
-    alibiProfession: c.alibiProfession || 'Гражданин',
+    token: c.token, cipher: c.randomCipher || c.cipher || 'Нумер', role: c.role, alibiProfession: c.alibiProfession || 'Гражданин',
     messages: chat[c.token] || []
   })));
 });
 
 app.get('/api/chat/:token', (req, res) => res.json(chat[req.params.token] || []));
-
 app.post('/api/chat/:token', (req, res) => {
   const text = (req.body && req.body.text ? String(req.body.text) : '').trim();
   if (!text) return res.status(400).json({ error: 'empty' });
-  const t = req.params.token;
-  (chat[t] = chat[t] || []).push({ from: 'player', text, ts: Date.now() });
+  (chat[req.params.token] = chat[req.params.token] || []).push({ from: 'player', text, ts: Date.now() });
   res.json({ ok: true });
 });
-
 app.post('/api/chat/:token/reply', (req, res) => {
   const text = (req.body && req.body.text ? String(req.body.text) : '').trim();
   if (!text) return res.status(400).json({ error: 'empty' });
-  const t = req.params.token;
-  (chat[t] = chat[t] || []).push({ from: 'admin', text, ts: Date.now() });
+  (chat[req.params.token] = chat[req.params.token] || []).push({ from: 'admin', text, ts: Date.now() });
   res.json({ ok: true });
 });
 
@@ -104,23 +94,17 @@ app.post('/api/vote', (req, res) => {
   if (voterId) votes[voterId] = targetId === null ? null : Number(targetId);
   res.json({ ok: true, votes });
 });
-
 app.post('/api/reset-votes', (req, res) => { votes = {}; res.json({ ok: true }); });
 app.get('/api/voting-status', (req, res) => res.json({ isVotingOpen }));
 app.post('/api/voting-status', (req, res) => { isVotingOpen = Boolean(req.body && req.body.isVotingOpen); res.json({ isVotingOpen }); });
 
-app.post('/api/set-mode', (req, res) => { 
-  currentMode = Number(req.body.mode); 
-  res.json({ mode: currentMode }); 
-});
-
+app.post('/api/set-mode', (req, res) => { currentMode = Number(req.body.mode); res.json({ mode: currentMode }); });
 app.post('/api/next-night', (req, res) => {
   currentNight++;
   const anyDead = Object.values(state).some(s => s && s.dead);
   isMassacre = currentNight === 3 && !anyDead;
   res.json({ night: currentNight, isMassacre });
 });
-
 app.post('/api/reset', (req, res) => {
   state = {}; chat = {}; votes = {}; currentNight = 1; isVotingOpen = false; isMassacre = false;
   res.json({ ok: true });
