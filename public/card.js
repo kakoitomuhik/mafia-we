@@ -5,6 +5,11 @@ const escapeHtml = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
 const token = new URLSearchParams(location.search).get('t');
 const app = document.getElementById('app');
 
+// Если контейнера нет, выдаем ошибку в консоль
+if (!app) {
+  console.error('КРИТИЧЕСКАЯ ОШИБКА: В card.html нет элемента с id="app"');
+}
+
 let card = null;
 let userGender = localStorage.getItem('gender_' + token);
 let roleRevealed = localStorage.getItem('revealed_' + token) === 'true';
@@ -26,11 +31,11 @@ const IMAGES = {
 };
 
 if (!token) {
-  app.innerHTML = '<p style="color:#889; padding:20px; text-align:center; font-size:18px;">Токен не найден.</p>';
+  if (app) app.innerHTML = '<p style="color:#889; padding:20px; text-align:center; font-size:18px;">Токен не найден.</p>';
 } else {
   start().catch(err => {
     console.error('start failed:', err);
-    app.innerHTML = '<p style="color:#ff5252; padding:20px; text-align:center; font-size:18px;">Ошибка загрузки данных.</p>';
+    if (app) app.innerHTML = '<p style="color:#ff5252; padding:20px; text-align:center; font-size:18px;">Ошибка загрузки данных.</p>';
   });
 }
 
@@ -45,7 +50,11 @@ const postJson = (url, data) => api(url, {
 });
 
 async function start() {
+  if (!app) return;
+  
+  // Сервер теперь возвращает ОДНУ карту (объект), а не массив
   card = await api(`/api/cards?t=${encodeURIComponent(token)}`);
+  
   if (!card || !card.role) {
     app.innerHTML = '<p style="color:#889; padding:20px; text-align:center; font-size:18px;">Карта не найдена.</p>';
     return;
