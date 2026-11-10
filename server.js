@@ -2,12 +2,11 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const app = express();
-const PORT = 8080; // Netrun требует 8080
+const PORT = 8080;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Ищем файл cards.json во всех папках
 function findCardsFile() {
   const paths = [
     path.join(__dirname, 'data', 'cards.json'),
@@ -39,7 +38,6 @@ let currentMode = 10;
 let isVotingOpen = false;
 let isMassacre = false;
 
-// 1. Карты
 app.get('/api/cards', (req, res) => {
   const all = loadCards();
   const t = req.query.t;
@@ -50,13 +48,11 @@ app.get('/api/cards', (req, res) => {
   res.json(all);
 });
 
-// 2. Список игроков для голосования
 app.get('/api/players', (req, res) => {
   const all = loadCards();
   res.json(all.map(c => ({ id: c.id, cipher: c.cipher || 'Нумер', randomCipher: c.randomCipher || 'А-1' })));
 });
 
-// 3. Состояние игры
 app.get('/api/state', (req, res) => {
   res.json({ cards: state, night: currentNight, mode: currentMode, isMassacre });
 });
@@ -66,7 +62,6 @@ app.post('/api/state/:id', (req, res) => {
   res.json(state[req.params.id]);
 });
 
-// 4. Чат
 app.get('/api/chat', (req, res) => {
   const all = loadCards();
   res.json(all.map(c => ({
@@ -97,7 +92,6 @@ app.post('/api/chat/:token/reply', (req, res) => {
   res.json({ ok: true });
 });
 
-// 5. Голосование
 app.get('/api/votes', (req, res) => res.json(votes));
 app.post('/api/vote', (req, res) => {
   const { voterId, targetId } = req.body || {};
@@ -109,7 +103,6 @@ app.post('/api/reset-votes', (req, res) => { votes = {}; res.json({ ok: true });
 app.get('/api/voting-status', (req, res) => res.json({ isVotingOpen }));
 app.post('/api/voting-status', (req, res) => { isVotingOpen = Boolean(req.body && req.body.isVotingOpen); res.json({ isVotingOpen }); });
 
-// 6. Настройки (те, которых не хватало для админки!)
 app.post('/api/set-mode', (req, res) => { 
   currentMode = Number(req.body.mode); 
   res.json({ mode: currentMode }); 
@@ -127,7 +120,6 @@ app.post('/api/reset', (req, res) => {
   res.json({ ok: true });
 });
 
-// Запуск
 app.listen(PORT, () => {
-  console.log(`▶ Server running on port ${PORT}`);
+  console.log('Server running on port ' + PORT);
 });
