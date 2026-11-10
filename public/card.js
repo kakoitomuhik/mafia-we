@@ -45,7 +45,7 @@ const postJson = (url, data) => api(url, {
 });
 
 async function start() {
-  // Сервер теперь отдает ОДНУ карту
+  // Сервер отдаёт ОДНУ карту
   card = await api(`/api/cards?t=${encodeURIComponent(token)}`);
   
   if (!card || !card.role) {
