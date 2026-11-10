@@ -4,8 +4,14 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// cards.json теперь лежит в папке data (в корне проекта)
-const CARDS_FILE = path.join(__dirname, 'data', 'cards.json');
+// Ищем cards.json в нескольких местах, чтобы точно найти
+let CARDS_FILE = path.join(__dirname, 'data', 'cards.json');
+if (!fs.existsSync(CARDS_FILE)) {
+  CARDS_FILE = path.join(__dirname, 'cards.json'); // если лежит в корне
+}
+if (!fs.existsSync(CARDS_FILE)) {
+  CARDS_FILE = path.join(__dirname, 'public', 'cards.json'); // если забыли перенести
+}
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -53,29 +59,29 @@ function shuffle(array) {
 
 function loadCardsFromDisk() {
   try {
+    if (!fs.existsSync(CARDS_FILE)) {
+      console.error('Файл cards.json НЕ НАЙДЕН по пути:', CARDS_FILE);
+      return []; // Возвращаем пустой массив, чтобы сервер НЕ УПАЛ
+    }
     const raw = fs.readFileSync(CARDS_FILE, 'utf8');
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) {
       console.error('cards.json должен содержать массив');
-      return null;
+      return [];
     }
     return parsed;
   } catch (e) {
     console.error('Не удалось загрузить cards.json:', e.message);
-    return null;
+    return []; // Возвращаем пустой массив, чтобы сервер НЕ УПАЛ
   }
 }
 
 function getCardsWithProfessions() {
   if (gameCards) return gameCards;
-
   const allCards = loadCardsFromDisk();
-  if (!allCards) return [];
+  if (!allCards.length) return [];
 
   const limit = currentMode;
-  if (allCards.length < limit) {
-    console.error(`В cards.json только ${allCards.length} карт, а режим ${currentMode}`);
-  }
   const selectedCards = allCards.slice(0, limit);
 
   const shuffledProfs = shuffle(PROFESSIONS);
@@ -127,11 +133,7 @@ function getCardsWithProfessions() {
   return gameCards;
 }
 
-function isAdmin(req) {
-  const adminToken = process.env.ADMIN_TOKEN;
-  if (!adminToken) return true; 
-  return req.headers['x-admin-token'] === adminToken;
-}
+// --- API ---
 
 app.get('/api/cards', (req, res) => {
   const all = getCardsWithProfessions();
@@ -148,18 +150,12 @@ app.get('/api/cards', (req, res) => {
     const one = all.find(c => c.token === t);
     return one ? res.json(one) : res.status(404).json({ error: 'card not found' });
   }
-
-  if (!isAdmin(req)) return res.status(403).json({ error: 'forbidden' });
   res.json(all);
 });
 
 app.get('/api/players', (req, res) => {
   const all = getCardsWithProfessions();
-  res.json(all.map(c => ({
-    id: c.id,
-    cipher: c.cipher,
-    randomCipher: c.randomCipher
-  })));
+  res.json(all.map(c => ({ id: c.id, cipher: c.cipher, randomCipher: c.randomCipher })));
 });
 
 app.get('/api/state', (req, res) => {
@@ -168,31 +164,19 @@ app.get('/api/state', (req, res) => {
 
 app.post('/api/state/:id', (req, res) => {
   const id = req.params.id;
-  if (id === '__proto__' || id === 'constructor' || id === 'prototype') {
-    return res.status(400).json({ error: 'invalid id' });
-  }
-  if (!req.body || typeof req.body !== 'object') {
-    return res.status(400).json({ error: 'invalid body' });
-  }
+  if (id === '__proto__' || id === 'constructor' || id === 'prototype') return res.status(400).json({error: 'invalid id'});
   state[id] = { ...(state[id] || {}), ...req.body };
   res.json(state[id]);
 });
 
 app.get('/api/chat', (req, res) => {
-  if (!isAdmin(req)) return res.status(403).json({ error: 'forbidden' });
   res.json(getCardsWithProfessions().map(c => ({
-    token: c.token,
-    cipher: c.randomCipher || c.cipher,
-    randomCipher: c.randomCipher,
-    role: c.role,
-    alibiProfession: c.alibiProfession,
-    messages: chat[c.token] || []
+    token: c.token, cipher: c.randomCipher || c.cipher, randomCipher: c.randomCipher,
+    role: c.role, alibiProfession: c.alibiProfession, messages: chat[c.token] || []
   })));
 });
 
-app.get('/api/chat/:token', (req, res) => {
-  res.json(chat[req.params.token] || []);
-});
+app.get('/api/chat/:token', (req, res) => res.json(chat[req.params.token] || []));
 
 app.post('/api/chat/:token', (req, res) => {
   const text = (req.body && req.body.text ? String(req.body.text) : '').trim();
@@ -203,7 +187,6 @@ app.post('/api/chat/:token', (req, res) => {
 });
 
 app.post('/api/chat/:token/reply', (req, res) => {
-  if (!isAdmin(req)) return res.status(403).json({ error: 'forbidden' });
   const text = (req.body && req.body.text ? String(req.body.text) : '').trim();
   if (!text) return res.status(400).json({ error: 'empty' });
   const t = req.params.token;
@@ -215,41 +198,23 @@ app.get('/api/votes', (req, res) => res.json(votes));
 
 app.post('/api/vote', (req, res) => {
   const { voterId, targetId } = req.body || {};
-  if (!voterId || targetId === undefined) {
-    return res.status(400).json({ error: 'voterId and targetId required (targetId=null for abstain)' });
-  }
+  if (!voterId || targetId === undefined) return res.status(400).json({ error: 'required' });
   votes[voterId] = targetId === null ? null : Number(targetId);
   res.json({ ok: true, votes });
 });
 
-app.post('/api/reset-votes', (req, res) => {
-  if (!isAdmin(req)) return res.status(403).json({ error: 'forbidden' });
-  votes = {};
-  res.json({ ok: true });
-});
-
+app.post('/api/reset-votes', (req, res) => { votes = {}; res.json({ ok: true }); });
 app.get('/api/voting-status', (req, res) => res.json({ isVotingOpen }));
-
-app.post('/api/voting-status', (req, res) => {
-  if (!isAdmin(req)) return res.status(403).json({ error: 'forbidden' });
-  isVotingOpen = Boolean(req.body && req.body.isVotingOpen);
-  res.json({ isVotingOpen });
-});
+app.post('/api/voting-status', (req, res) => { isVotingOpen = Boolean(req.body && req.body.isVotingOpen); res.json({ isVotingOpen }); });
 
 app.post('/api/set-mode', (req, res) => {
-  if (!isAdmin(req)) return res.status(403).json({ error: 'forbidden' });
   const mode = Number(req.body && req.body.mode);
-  if (![10, 15, 20].includes(mode)) {
-    return res.status(400).json({ error: 'mode must be 10, 15 or 20' });
-  }
-  currentMode = mode;
-  gameCards = null;
-  usedTokens = {};
+  if (![10, 15, 20].includes(mode)) return res.status(400).json({ error: 'invalid mode' });
+  currentMode = mode; gameCards = null; usedTokens = {};
   res.json({ mode: currentMode });
 });
 
 app.post('/api/next-night', (req, res) => {
-  if (!isAdmin(req)) return res.status(403).json({ error: 'forbidden' });
   currentNight++;
   const anyDead = Object.values(state).some(s => s && s.dead);
   isMassacre = currentNight === 3 && !anyDead;
@@ -257,19 +222,12 @@ app.post('/api/next-night', (req, res) => {
 });
 
 app.post('/api/reset', (req, res) => {
-  if (!isAdmin(req)) return res.status(403).json({ error: 'forbidden' });
-  state = {};
-  chat = {};
-  votes = {};
-  usedTokens = {};
-  currentNight = 1;
-  isVotingOpen = false;
-  isMassacre = false;
-  gameCards = null;
+  state = {}; chat = {}; votes = {}; usedTokens = {}; currentNight = 1;
+  isVotingOpen = false; isMassacre = false; gameCards = null;
   res.json({ ok: true });
 });
 
-// ВАЖНО: Слушаем порт, который даёт Netrun. Без '0.0.0.0'.
+// Слушаем порт
 app.listen(PORT, () => {
   console.log(`▶ Server running on port ${PORT}`);
 });
