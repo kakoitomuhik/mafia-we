@@ -19,13 +19,13 @@
 
     <div id="tab-players" class="tab-panel active">
       <div class="mode-control">
-        <label>Режим игры:</label>
+        <label>Режим:</label>
         <select id="mode-select">
           <option value="10">10 игроков</option>
           <option value="15">15 игроков</option>
         </select>
         <button id="next-night" class="btn-ghost" style="border-color:#4a7fff; color:#4a7fff; margin:0;">Следующая ночь 🌙</button>
-        <button id="toggle-vote" class="btn-ghost" style="border-color:#ffd47a; color:#ffd47a; margin:0;">Открыть/Закрыть голосование</button>
+        <button id="toggle-vote" class="btn-ghost" style="border-color:#ffd47a; color:#ffd47a; margin:0;">Открыть голосование</button>
       </div>
 
       <div style="margin-bottom:15px;">
@@ -52,13 +52,12 @@
       </div>
     </div>
 
-    <!-- БЛОК ЗАМЕТОК -->
     <div id="tab-notes" class="tab-panel hidden">
       <div style="padding: 10px;">
         <textarea 
           id="global-notes" 
           placeholder="Записывайте сюда всё..." 
-          style="width: 100%; height: 350px; padding: 15px; font-size: 16px; background: rgba(10, 15, 30, 0.9); color: #fff; border: 1px solid rgba(120, 170, 255, 0.5); border-radius: 12px; resize: vertical; font-family: inherit; display: block; box-sizing: border-box;"
+          style="width: 100%; height: 350px; padding: 15px; font-size: 16px; background: rgba(10, 15, 30, 0.9); color: #fff; border: 1px solid rgba(120, 170, 255, 0.5); border-radius: 12px; resize: vertical; display: block; box-sizing: border-box;"
         ></textarea>
         <button 
           id="save-notes" 
