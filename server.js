@@ -4,13 +4,10 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Ищем cards.json в нескольких местах, чтобы точно найти
+// Ищем cards.json в папке data, если нет — пробуем найти в public
 let CARDS_FILE = path.join(__dirname, 'data', 'cards.json');
 if (!fs.existsSync(CARDS_FILE)) {
-  CARDS_FILE = path.join(__dirname, 'cards.json'); // если лежит в корне
-}
-if (!fs.existsSync(CARDS_FILE)) {
-  CARDS_FILE = path.join(__dirname, 'public', 'cards.json'); // если забыли перенести
+  CARDS_FILE = path.join(__dirname, 'public', 'cards.json');
 }
 
 app.use(express.json());
@@ -19,7 +16,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 let state = {};
 let chat = {};
 let votes = {};
-let usedTokens = {};
 let currentNight = 1;
 let currentMode = 10;
 let gameCards = null;
@@ -61,18 +57,13 @@ function loadCardsFromDisk() {
   try {
     if (!fs.existsSync(CARDS_FILE)) {
       console.error('Файл cards.json НЕ НАЙДЕН по пути:', CARDS_FILE);
-      return []; // Возвращаем пустой массив, чтобы сервер НЕ УПАЛ
-    }
-    const raw = fs.readFileSync(CARDS_FILE, 'utf8');
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      console.error('cards.json должен содержать массив');
       return [];
     }
-    return parsed;
+    const raw = fs.readFileSync(CARDS_FILE, 'utf8');
+    return JSON.parse(raw);
   } catch (e) {
-    console.error('Не удалось загрузить cards.json:', e.message);
-    return []; // Возвращаем пустой массив, чтобы сервер НЕ УПАЛ
+    console.error('Ошибка чтения cards.json:', e.message);
+    return [];
   }
 }
 
@@ -83,15 +74,13 @@ function getCardsWithProfessions() {
 
   const limit = currentMode;
   const selectedCards = allCards.slice(0, limit);
-
   const shuffledProfs = shuffle(PROFESSIONS);
   const shuffledLetters = shuffle(CIPHER_LETTERS);
 
   selectedCards.forEach((card, index) => {
     card.alibiProfession = shuffledProfs[index % shuffledProfs.length];
     const letter = shuffledLetters[index % shuffledLetters.length];
-    const number = Math.floor(Math.random() * 999) + 1;
-    card.randomCipher = `${letter}-${number}`;
+    card.randomCipher = `${letter}-${Math.floor(Math.random() * 999) + 1}`;
 
     if (card.role === "Строитель" && GOALS[card.id]) {
       const goal = GOALS[card.id];
@@ -102,31 +91,24 @@ function getCardsWithProfessions() {
       card.goalNameF = goal.nameF;
       card.quest = goal.task;
     } else if (card.role === "Икона сопротивления") {
-      card.imageKey = "icon";
-      card.image = "icon";
+      card.imageKey = "icon"; card.image = "icon";
       card.quote = "Я — цитата, которую повторят после меня.";
-      card.goalName = "«Икона сопротивления»";
-      card.goalNameF = "«Икона сопротивления»";
+      card.goalName = "«Икона сопротивления»"; card.goalNameF = "«Икона сопротивления»";
       card.quest = "Умереть на голосовании. Очков за твою смерть не получает никто.";
     } else if (card.role === "Диссидент") {
-      card.imageKey = "dissident2";
-      card.image = "dissident2";
+      card.imageKey = "dissident2"; card.image = "dissident2";
     } else if (card.role === "Лидер сопротивления") {
-      card.imageKey = "leader";
-      card.image = "leader";
+      card.imageKey = "leader"; card.image = "leader";
     } else if (card.role === "Врач") {
-      card.imageKey = "doctor";
-      card.image = "doctor";
+      card.imageKey = "doctor"; card.image = "doctor";
     } else if (card.role === "Хранитель") {
-      card.imageKey = "guardian";
-      card.image = "guardian";
+      card.imageKey = "guardian"; card.image = "guardian";
     }
   });
 
   const candidates = selectedCards.filter(c => c.role === "Строитель");
   if (candidates.length > 0) {
-    const chosenOne = candidates[Math.floor(Math.random() * candidates.length)];
-    chosenOne.isAvenger = true;
+    candidates[Math.floor(Math.random() * candidates.length)].isAvenger = true;
   }
 
   gameCards = selectedCards;
@@ -138,15 +120,7 @@ function getCardsWithProfessions() {
 app.get('/api/cards', (req, res) => {
   const all = getCardsWithProfessions();
   const t = req.query.t;
-  const device = req.query.device;
-
   if (t) {
-    if (device) {
-      if (usedTokens[t] && usedTokens[t] !== device) {
-        return res.status(403).json({ error: 'used' });
-      }
-      usedTokens[t] = device;
-    }
     const one = all.find(c => c.token === t);
     return one ? res.json(one) : res.status(404).json({ error: 'card not found' });
   }
@@ -163,10 +137,8 @@ app.get('/api/state', (req, res) => {
 });
 
 app.post('/api/state/:id', (req, res) => {
-  const id = req.params.id;
-  if (id === '__proto__' || id === 'constructor' || id === 'prototype') return res.status(400).json({error: 'invalid id'});
-  state[id] = { ...(state[id] || {}), ...req.body };
-  res.json(state[id]);
+  state[req.params.id] = { ...(state[req.params.id] || {}), ...req.body };
+  res.json(state[req.params.id]);
 });
 
 app.get('/api/chat', (req, res) => {
@@ -198,8 +170,7 @@ app.get('/api/votes', (req, res) => res.json(votes));
 
 app.post('/api/vote', (req, res) => {
   const { voterId, targetId } = req.body || {};
-  if (!voterId || targetId === undefined) return res.status(400).json({ error: 'required' });
-  votes[voterId] = targetId === null ? null : Number(targetId);
+  if (voterId) votes[voterId] = targetId === null ? null : Number(targetId);
   res.json({ ok: true, votes });
 });
 
@@ -208,9 +179,8 @@ app.get('/api/voting-status', (req, res) => res.json({ isVotingOpen }));
 app.post('/api/voting-status', (req, res) => { isVotingOpen = Boolean(req.body && req.body.isVotingOpen); res.json({ isVotingOpen }); });
 
 app.post('/api/set-mode', (req, res) => {
-  const mode = Number(req.body && req.body.mode);
-  if (![10, 15, 20].includes(mode)) return res.status(400).json({ error: 'invalid mode' });
-  currentMode = mode; gameCards = null; usedTokens = {};
+  currentMode = Number(req.body.mode);
+  gameCards = null;
   res.json({ mode: currentMode });
 });
 
@@ -222,12 +192,11 @@ app.post('/api/next-night', (req, res) => {
 });
 
 app.post('/api/reset', (req, res) => {
-  state = {}; chat = {}; votes = {}; usedTokens = {}; currentNight = 1;
+  state = {}; chat = {}; votes = {}; currentNight = 1;
   isVotingOpen = false; isMassacre = false; gameCards = null;
   res.json({ ok: true });
 });
 
-// Слушаем порт
 app.listen(PORT, () => {
   console.log(`▶ Server running on port ${PORT}`);
 });
