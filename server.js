@@ -4,7 +4,7 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// cards.json теперь лежит в папке data
+// cards.json теперь лежит в папке data (в корне проекта)
 const CARDS_FILE = path.join(__dirname, 'data', 'cards.json');
 
 app.use(express.json());
@@ -127,7 +127,6 @@ function getCardsWithProfessions() {
   return gameCards;
 }
 
-// Защита админки (если вы задали ADMIN_TOKEN на хостинге)
 function isAdmin(req) {
   const adminToken = process.env.ADMIN_TOKEN;
   if (!adminToken) return true; 
@@ -270,6 +269,7 @@ app.post('/api/reset', (req, res) => {
   res.json({ ok: true });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+// ВАЖНО: Слушаем порт, который даёт Netrun. Без '0.0.0.0'.
+app.listen(PORT, () => {
   console.log(`▶ Server running on port ${PORT}`);
 });
