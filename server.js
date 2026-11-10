@@ -2,16 +2,27 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-// Ищем cards.json в папке data, если нет — пробуем найти в public
-let CARDS_FILE = path.join(__dirname, 'data', 'cards.json');
-if (!fs.existsSync(CARDS_FILE)) {
-  CARDS_FILE = path.join(__dirname, 'public', 'cards.json');
-}
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// ==========================================
+// СПИСОК ТОКЕНОВ ИЗ ТВОИХ ССЫЛОК
+// ==========================================
+const FIXED_TOKENS = [
+  "7f3a9c21", // 1. Поэт
+  "2d8e4b17", // 2. Пропагандист
+  "9a1c6f52", // 3. Юрист
+  "4e7b2d98", // 4. Порядочный гражданин
+  "6c3f8a41", // 5. Пацифист
+  "1b5d9e73", // 6. Икона сопротивления
+  "8a2e4f16", // 7. Диссидент
+  "3f7c1b85", // 8. Лидер сопротивления
+  "5e9a2d64", // 9. Врач
+  "2c8f6e39"  // 10. Хранитель
+];
 
 let state = {};
 let chat = {};
@@ -55,12 +66,10 @@ function shuffle(array) {
 
 function loadCardsFromDisk() {
   try {
-    if (!fs.existsSync(CARDS_FILE)) {
-      console.error('Файл cards.json НЕ НАЙДЕН по пути:', CARDS_FILE);
-      return [];
-    }
-    const raw = fs.readFileSync(CARDS_FILE, 'utf8');
-    return JSON.parse(raw);
+    let file = path.join(__dirname, 'data', 'cards.json');
+    if (!fs.existsSync(file)) file = path.join(__dirname, 'public', 'cards.json');
+    if (!fs.existsSync(file)) return [];
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
   } catch (e) {
     console.error('Ошибка чтения cards.json:', e.message);
     return [];
@@ -69,27 +78,30 @@ function loadCardsFromDisk() {
 
 function getCardsWithProfessions() {
   if (gameCards) return gameCards;
+
   const allCards = loadCardsFromDisk();
   if (!allCards.length) return [];
 
   const limit = currentMode;
   const selectedCards = allCards.slice(0, limit);
+  
   const shuffledProfs = shuffle(PROFESSIONS);
   const shuffledLetters = shuffle(CIPHER_LETTERS);
 
+  // ПРИНУДИТЕЛЬНО ВСТАВЛЯЕМ ТВОИ ТОКЕНЫ
   selectedCards.forEach((card, index) => {
+    if (FIXED_TOKENS[index]) {
+      card.token = FIXED_TOKENS[index];
+    }
+
     card.alibiProfession = shuffledProfs[index % shuffledProfs.length];
     const letter = shuffledLetters[index % shuffledLetters.length];
     card.randomCipher = `${letter}-${Math.floor(Math.random() * 999) + 1}`;
 
     if (card.role === "Строитель" && GOALS[card.id]) {
       const goal = GOALS[card.id];
-      card.imageKey = goal.img;
-      card.image = goal.img;
-      card.quote = goal.quote;
-      card.goalName = goal.name;
-      card.goalNameF = goal.nameF;
-      card.quest = goal.task;
+      card.imageKey = goal.img; card.image = goal.img;
+      card.quote = goal.quote; card.goalName = goal.name; card.goalNameF = goal.nameF; card.quest = goal.task;
     } else if (card.role === "Икона сопротивления") {
       card.imageKey = "icon"; card.image = "icon";
       card.quote = "Я — цитата, которую повторят после меня.";
@@ -106,16 +118,11 @@ function getCardsWithProfessions() {
     }
   });
 
-  const candidates = selectedCards.filter(c => c.role === "Строитель");
-  if (candidates.length > 0) {
-    candidates[Math.floor(Math.random() * candidates.length)].isAvenger = true;
-  }
-
   gameCards = selectedCards;
   return gameCards;
 }
 
-// --- API ---
+// ================= API =================
 
 app.get('/api/cards', (req, res) => {
   const all = getCardsWithProfessions();
@@ -167,7 +174,6 @@ app.post('/api/chat/:token/reply', (req, res) => {
 });
 
 app.get('/api/votes', (req, res) => res.json(votes));
-
 app.post('/api/vote', (req, res) => {
   const { voterId, targetId } = req.body || {};
   if (voterId) votes[voterId] = targetId === null ? null : Number(targetId);
@@ -178,12 +184,7 @@ app.post('/api/reset-votes', (req, res) => { votes = {}; res.json({ ok: true });
 app.get('/api/voting-status', (req, res) => res.json({ isVotingOpen }));
 app.post('/api/voting-status', (req, res) => { isVotingOpen = Boolean(req.body && req.body.isVotingOpen); res.json({ isVotingOpen }); });
 
-app.post('/api/set-mode', (req, res) => {
-  currentMode = Number(req.body.mode);
-  gameCards = null;
-  res.json({ mode: currentMode });
-});
-
+app.post('/api/set-mode', (req, res) => { currentMode = Number(req.body.mode); gameCards = null; res.json({ mode: currentMode }); });
 app.post('/api/next-night', (req, res) => {
   currentNight++;
   const anyDead = Object.values(state).some(s => s && s.dead);
@@ -192,11 +193,11 @@ app.post('/api/next-night', (req, res) => {
 });
 
 app.post('/api/reset', (req, res) => {
-  state = {}; chat = {}; votes = {}; currentNight = 1;
-  isVotingOpen = false; isMassacre = false; gameCards = null;
+  state = {}; chat = {}; votes = {}; currentNight = 1; isVotingOpen = false; isMassacre = false; gameCards = null;
   res.json({ ok: true });
 });
 
+// САМОЕ ГЛАВНОЕ: без '0.0.0.0', иначе Netrun падает с 502
 app.listen(PORT, () => {
   console.log(`▶ Server running on port ${PORT}`);
 });
