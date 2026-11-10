@@ -4,7 +4,7 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// cards.json ВЫНЕСЕН из public/ — иначе раздаётся статикой и роли утекают
+// cards.json теперь лежит в папке data
 const CARDS_FILE = path.join(__dirname, 'data', 'cards.json');
 
 app.use(express.json());
@@ -13,6 +13,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 let state = {};
 let chat = {};
 let votes = {};
+let usedTokens = {};
 let currentNight = 1;
 let currentMode = 10;
 let gameCards = null;
@@ -89,24 +90,30 @@ function getCardsWithProfessions() {
     if (card.role === "Строитель" && GOALS[card.id]) {
       const goal = GOALS[card.id];
       card.imageKey = goal.img;
+      card.image = goal.img;
       card.quote = goal.quote;
       card.goalName = goal.name;
       card.goalNameF = goal.nameF;
       card.quest = goal.task;
     } else if (card.role === "Икона сопротивления") {
       card.imageKey = "icon";
+      card.image = "icon";
       card.quote = "Я — цитата, которую повторят после меня.";
       card.goalName = "«Икона сопротивления»";
       card.goalNameF = "«Икона сопротивления»";
       card.quest = "Умереть на голосовании. Очков за твою смерть не получает никто.";
     } else if (card.role === "Диссидент") {
       card.imageKey = "dissident2";
+      card.image = "dissident2";
     } else if (card.role === "Лидер сопротивления") {
       card.imageKey = "leader";
+      card.image = "leader";
     } else if (card.role === "Врач") {
       card.imageKey = "doctor";
+      card.image = "doctor";
     } else if (card.role === "Хранитель") {
       card.imageKey = "guardian";
+      card.image = "guardian";
     }
   });
 
@@ -120,32 +127,33 @@ function getCardsWithProfessions() {
   return gameCards;
 }
 
-// ---------- Проверка админ-доступа ----------
+// Защита админки (если вы задали ADMIN_TOKEN на хостинге)
 function isAdmin(req) {
   const adminToken = process.env.ADMIN_TOKEN;
-  if (!adminToken) return true; // защита выключена
+  if (!adminToken) return true; 
   return req.headers['x-admin-token'] === adminToken;
 }
 
-// ---------- Карты ----------
-// С ?t=TOKEN — отдаёт ОДНУ карту игроку (его собственную).
-// Без t — только админ, отдаёт все карты.
 app.get('/api/cards', (req, res) => {
   const all = getCardsWithProfessions();
   const t = req.query.t;
+  const device = req.query.device;
 
   if (t) {
+    if (device) {
+      if (usedTokens[t] && usedTokens[t] !== device) {
+        return res.status(403).json({ error: 'used' });
+      }
+      usedTokens[t] = device;
+    }
     const one = all.find(c => c.token === t);
-    if (!one) return res.status(404).json({ error: 'card not found' });
-    return res.json(one);
+    return one ? res.json(one) : res.status(404).json({ error: 'card not found' });
   }
 
   if (!isAdmin(req)) return res.status(403).json({ error: 'forbidden' });
   res.json(all);
 });
 
-// Публичный список игроков — только id и шифр, без ролей.
-// Используется для списка целей голосования.
 app.get('/api/players', (req, res) => {
   const all = getCardsWithProfessions();
   res.json(all.map(c => ({
@@ -155,18 +163,15 @@ app.get('/api/players', (req, res) => {
   })));
 });
 
-// ---------- Состояние игры ----------
 app.get('/api/state', (req, res) => {
-  res.json({
-    cards: state,
-    night: currentNight,
-    mode: currentMode,
-    isMassacre
-  });
+  res.json({ cards: state, night: currentNight, mode: currentMode, isMassacre });
 });
 
 app.post('/api/state/:id', (req, res) => {
   const id = req.params.id;
+  if (id === '__proto__' || id === 'constructor' || id === 'prototype') {
+    return res.status(400).json({ error: 'invalid id' });
+  }
   if (!req.body || typeof req.body !== 'object') {
     return res.status(400).json({ error: 'invalid body' });
   }
@@ -174,8 +179,6 @@ app.post('/api/state/:id', (req, res) => {
   res.json(state[id]);
 });
 
-// ---------- Чат ----------
-// Админ-эндпоинт: все чаты со всеми ролями. Защищён X-Admin-Token.
 app.get('/api/chat', (req, res) => {
   if (!isAdmin(req)) return res.status(403).json({ error: 'forbidden' });
   res.json(getCardsWithProfessions().map(c => ({
@@ -188,7 +191,6 @@ app.get('/api/chat', (req, res) => {
   })));
 });
 
-// Чат игрока: по токену. Отдаёт только его сообщения — без ролей.
 app.get('/api/chat/:token', (req, res) => {
   res.json(chat[req.params.token] || []);
 });
@@ -196,9 +198,8 @@ app.get('/api/chat/:token', (req, res) => {
 app.post('/api/chat/:token', (req, res) => {
   const text = (req.body && req.body.text ? String(req.body.text) : '').trim();
   if (!text) return res.status(400).json({ error: 'empty' });
-  (chat[req.params.token] = chat[req.params.token] || []).push({
-    from: 'player', text, ts: Date.now()
-  });
+  const t = req.params.token;
+  (chat[t] = chat[t] || []).push({ from: 'player', text, ts: Date.now() });
   res.json({ ok: true });
 });
 
@@ -206,16 +207,13 @@ app.post('/api/chat/:token/reply', (req, res) => {
   if (!isAdmin(req)) return res.status(403).json({ error: 'forbidden' });
   const text = (req.body && req.body.text ? String(req.body.text) : '').trim();
   if (!text) return res.status(400).json({ error: 'empty' });
-  (chat[req.params.token] = chat[req.params.token] || []).push({
-    from: 'admin', text, ts: Date.now()
-  });
+  const t = req.params.token;
+  (chat[t] = chat[t] || []).push({ from: 'admin', text, ts: Date.now() });
   res.json({ ok: true });
 });
 
-// ---------- Голосование ----------
 app.get('/api/votes', (req, res) => res.json(votes));
 
-// targetId === null — воздержание. targetId === undefined — ошибка.
 app.post('/api/vote', (req, res) => {
   const { voterId, targetId } = req.body || {};
   if (!voterId || targetId === undefined) {
@@ -235,34 +233,27 @@ app.get('/api/voting-status', (req, res) => res.json({ isVotingOpen }));
 
 app.post('/api/voting-status', (req, res) => {
   if (!isAdmin(req)) return res.status(403).json({ error: 'forbidden' });
-  if (!req.body || typeof req.body.isVotingOpen === 'undefined') {
-    return res.status(400).json({ error: 'isVotingOpen required' });
-  }
-  isVotingOpen = Boolean(req.body.isVotingOpen);
+  isVotingOpen = Boolean(req.body && req.body.isVotingOpen);
   res.json({ isVotingOpen });
 });
 
-// ---------- Управление игрой ----------
 app.post('/api/set-mode', (req, res) => {
   if (!isAdmin(req)) return res.status(403).json({ error: 'forbidden' });
   const mode = Number(req.body && req.body.mode);
-  if (![10, 15].includes(mode)) {
-    return res.status(400).json({ error: 'mode must be 10 or 15' });
+  if (![10, 15, 20].includes(mode)) {
+    return res.status(400).json({ error: 'mode must be 10, 15 or 20' });
   }
   currentMode = mode;
   gameCards = null;
+  usedTokens = {};
   res.json({ mode: currentMode });
 });
 
 app.post('/api/next-night', (req, res) => {
   if (!isAdmin(req)) return res.status(403).json({ error: 'forbidden' });
   currentNight++;
-
-  // Резня: третья ночь и никто ещё не казнён.
-  // Уточните правило: сейчас — "нет ни одного dead".
   const anyDead = Object.values(state).some(s => s && s.dead);
   isMassacre = currentNight === 3 && !anyDead;
-
   res.json({ night: currentNight, isMassacre });
 });
 
@@ -271,6 +262,7 @@ app.post('/api/reset', (req, res) => {
   state = {};
   chat = {};
   votes = {};
+  usedTokens = {};
   currentNight = 1;
   isVotingOpen = false;
   isMassacre = false;
@@ -279,5 +271,5 @@ app.post('/api/reset', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`▶ Server running on port ${PORT}`);
 });
