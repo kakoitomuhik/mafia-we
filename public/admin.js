@@ -1,6 +1,3 @@
-// ============================================================
-// Утилиты
-// ============================================================
 const escapeHtml = (s) =>
   String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -13,13 +10,15 @@ const fmtTime = (ts) => {
   if (!ts) return '';
   try {
     return new Date(ts).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
-  } catch {
-    return '';
-  }
+  } catch { return ''; }
 };
 
+const ADMIN_TOKEN = localStorage.getItem('admin_token') || '';
+
 async function api(url, opts) {
-  const res = await fetch(url, opts);
+  const headers = { ...(opts && opts.headers ? opts.headers : {}) };
+  if (ADMIN_TOKEN) headers['X-Admin-Token'] = ADMIN_TOKEN;
+  const res = await fetch(url, { ...opts, headers });
   if (!res.ok) {
     let msg = `HTTP ${res.status}`;
     try {
@@ -38,9 +37,6 @@ const postJson = (url, data) =>
     body: JSON.stringify(data || {})
   });
 
-// ============================================================
-// Состояние
-// ============================================================
 let cards = [];
 let state = { cards: {}, night: 1, mode: 10 };
 let chats = [];
@@ -48,9 +44,6 @@ let votes = {};
 let votingStatus = false;
 let pulling = false;
 
-// ============================================================
-// Загрузка данных
-// ============================================================
 async function pull() {
   if (pulling) return;
   pulling = true;
@@ -68,7 +61,6 @@ async function pull() {
     votes = v && typeof v === 'object' ? v : {};
     votingStatus = Boolean(vs && vs.isVotingOpen);
 
-    // гарантируем структуру
     if (!state.cards || typeof state.cards !== 'object') state.cards = {};
 
     renderHeader();
@@ -79,14 +71,14 @@ async function pull() {
     syncNotesField();
   } catch (e) {
     console.error('pull failed:', e);
+    if (e.message.includes('403')) {
+      alert('Доступ запрещён. Введите admin token в localStorage.');
+    }
   } finally {
     pulling = false;
   }
 }
 
-// ============================================================
-// Шапка / кнопка голосования
-// ============================================================
 function renderHeader() {
   const label = document.getElementById('night-label');
   if (label) label.textContent = `· ночь ${state.night || 1}`;
@@ -103,9 +95,6 @@ function renderVotingButton() {
   btn.textContent = votingStatus ? 'Закрыть голосование' : 'Открыть голосование';
 }
 
-// ============================================================
-// Игроки
-// ============================================================
 function renderPlayers() {
   const list = document.getElementById('list');
   if (!list) return;
@@ -151,9 +140,6 @@ async function toggleState(id, field, value) {
 function toggleDead(id, v) { return toggleState(id, 'dead', v); }
 function toggleWin(id, v)  { return toggleState(id, 'personalWinDone', v); }
 
-// ============================================================
-// Чаты
-// ============================================================
 function renderChats() {
   const box = document.getElementById('chats');
   if (!box) return;
@@ -165,7 +151,6 @@ function renderChats() {
     return;
   }
 
-  // Сохраняем черновики и фокус, чтобы не стирать ввод при перерисовке
   const drafts = {};
   box.querySelectorAll('input[data-inp]').forEach((inp) => {
     drafts[inp.dataset.inp] = inp.value;
@@ -200,19 +185,16 @@ function renderChats() {
     `;
   }).join('');
 
-  // Восстанавливаем черновики
   Object.entries(drafts).forEach(([token, val]) => {
     const inp = box.querySelector(`input[data-inp="${CSS.escape(token)}"]`);
     if (inp) inp.value = val;
   });
 
-  // Восстанавливаем фокус
   if (focusedToken) {
     const inp = box.querySelector(`input[data-inp="${CSS.escape(focusedToken)}"]`);
     if (inp) inp.focus();
   }
 
-  // Навешиваем обработчики
   box.querySelectorAll('button[data-btn]').forEach((btn) => {
     btn.onclick = async () => {
       const block = btn.closest('.chat-block');
@@ -233,9 +215,6 @@ function renderChats() {
   });
 }
 
-// ============================================================
-// Голосование
-// ============================================================
 function renderVotes() {
   const el = document.getElementById('votes-list');
   if (!el) return;
@@ -265,13 +244,9 @@ function renderVotes() {
   }).join('');
 }
 
-// ============================================================
-// Заметки
-// ============================================================
 function syncNotesField() {
   const notesEl = document.getElementById('global-notes');
   if (!notesEl) return;
-  // Не перезаписываем, если пользователь печатает
   if (document.activeElement === notesEl) return;
   const g = state.cards['global_notes'] || state['global_notes'];
   notesEl.value = (g && g.notes) || '';
@@ -283,7 +258,6 @@ async function saveNotes() {
   if (!el) return;
   try {
     await postJson('/api/state/global_notes', { notes: el.value });
-    // локально обновляем, чтобы не ждать pull
     if (!state.cards['global_notes']) state.cards['global_notes'] = {};
     state.cards['global_notes'].notes = el.value;
     if (btn) {
@@ -296,9 +270,6 @@ async function saveNotes() {
   }
 }
 
-// ============================================================
-// Табы
-// ============================================================
 function initTabs() {
   document.querySelectorAll('.tab').forEach((t) => {
     t.onclick = () => {
@@ -316,9 +287,6 @@ function initTabs() {
   });
 }
 
-// ============================================================
-// Кнопки управления
-// ============================================================
 function initButtons() {
   const refresh = document.getElementById('refresh');
   if (refresh) refresh.onclick = () => pull();
@@ -326,7 +294,7 @@ function initButtons() {
   const modeSel = document.getElementById('mode-select');
   if (modeSel) modeSel.onchange = async (e) => {
     const mode = parseInt(e.target.value, 10);
-    if (![10, 15].includes(mode)) return;
+    if (![10, 15, 20].includes(mode)) return;
     try {
       await postJson('/api/set-mode', { mode });
       await pull();
@@ -396,19 +364,14 @@ function initButtons() {
   if (saveNotesBtn) saveNotesBtn.onclick = saveNotes;
 }
 
-// ============================================================
-// Старт
-// ============================================================
 initTabs();
 initButtons();
 pull();
 
-// Автообновление: не накладываем запросы, не работаем на скрытой вкладке
 setInterval(() => {
   if (!document.hidden) pull();
 }, 3000);
 
-// Обновить сразу при возврате на вкладку
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) pull();
 });
