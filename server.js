@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+// Никаких кэшей и ограничений. Принимаем всё.
 app.use(express.json());
 app.use(express.static(__dirname + '/public'));
 
@@ -79,6 +80,7 @@ const CARDS = [
   }
 ];
 
+// Глобальная память
 let state = {};
 let chat = {};
 let votes = {};
@@ -86,6 +88,7 @@ let currentNight = 1;
 let isVotingOpen = false;
 let isMassacre = false;
 
+// --- API ДЛЯ КАРТ ---
 app.get('/api/cards', (req, res) => {
   const t = req.query.t;
   if (t) {
@@ -99,22 +102,42 @@ app.get('/api/cards', (req, res) => {
   res.json(CARDS);
 });
 
+// --- API ДЛЯ СОСТОЯНИЯ ---
 app.get('/api/state', (req, res) => res.json({ cards: state, night: currentNight, mode: 10, isMassacre }));
-app.post('/api/state/:id', (req, res) => { state[req.params.id] = { ...(state[req.params.id] || {}), ...req.body }; res.json(state[req.params.id]); });
+app.post('/api/state/:id', (req, res) => { 
+  state[req.params.id] = { ...(state[req.params.id] || {}), ...req.body }; 
+  res.json(state[req.params.id]); 
+});
 
-app.get('/api/chat', (req, res) => res.json(CARDS.map(c => ({ token: c.token, cipher: c.token, role: c.role, alibiProfession: "Гражданин", messages: chat[c.token] || [] }))));
+// --- API ДЛЯ ЧАТА (без блокировок) ---
+app.get('/api/chat', (req, res) => { 
+  res.json(CARDS.map(c => ({ token: c.token, cipher: c.token, role: c.role, alibiProfession: "Гражданин", messages: chat[c.token] || [] }))); 
+});
 app.get('/api/chat/:token', (req, res) => res.json(chat[req.params.token] || []));
-app.post('/api/chat/:token', (req, res) => { const t = req.params.token; (chat[t] = chat[t] || []).push({ from: 'player', text: req.body.text, ts: Date.now() }); res.json({ ok: true }); });
-app.post('/api/chat/:token/reply', (req, res) => { const t = req.params.token; (chat[t] = chat[t] || []).push({ from: 'admin', text: req.body.text, ts: Date.now() }); res.json({ ok: true }); });
+app.post('/api/chat/:token', (req, res) => { 
+  const t = req.params.token; 
+  (chat[t] = chat[t] || []).push({ from: 'player', text: req.body.text, ts: Date.now() }); 
+  res.json({ ok: true }); 
+});
+app.post('/api/chat/:token/reply', (req, res) => { 
+  const t = req.params.token; 
+  (chat[t] = chat[t] || []).push({ from: 'admin', text: req.body.text, ts: Date.now() }); 
+  res.json({ ok: true }); 
+});
 
+// --- API ДЛЯ ГОЛОСОВАНИЯ ---
 app.get('/api/votes', (req, res) => res.json(votes));
 app.post('/api/vote', (req, res) => { if (req.body.voterId) votes[req.body.voterId] = req.body.targetId; res.json({ ok: true, votes }); });
 app.post('/api/reset-votes', (req, res) => { votes = {}; res.json({ ok: true }); });
 app.get('/api/voting-status', (req, res) => res.json({ isVotingOpen }));
 app.post('/api/voting-status', (req, res) => { isVotingOpen = Boolean(req.body.isVotingOpen); res.json({ isVotingOpen }); });
 
+// --- АДМИНКА (СБРОС, НОЧИ) ---
 app.post('/api/set-mode', (req, res) => { res.json({ mode: 10 }); });
 app.post('/api/next-night', (req, res) => { currentNight++; res.json({ night: currentNight, isMassacre: false }); });
-app.post('/api/reset', (req, res) => { state = {}; chat = {}; votes = {}; currentNight = 1; isVotingOpen = false; isMassacre = false; res.json({ ok: true }); });
+app.post('/api/reset', (req, res) => { 
+  state = {}; chat = {}; votes = {}; currentNight = 1; isVotingOpen = false; isMassacre = false; 
+  res.json({ ok: true }); 
+});
 
 app.listen(PORT, () => console.log('Server running on port ' + PORT));
