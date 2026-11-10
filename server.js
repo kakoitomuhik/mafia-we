@@ -2,12 +2,12 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const app = express();
-const PORT = 8080;
+const PORT = 8080; // Порт для Netrun
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Поиск cards.json
+// Ищем cards.json во всех папках
 function findCardsFile() {
   const paths = [
     path.join(__dirname, 'data', 'cards.json'),
@@ -24,14 +24,12 @@ function loadCards() {
   const file = findCardsFile();
   if (!file) return [];
   try {
-    const raw = fs.readFileSync(file, 'utf8');
-    return JSON.parse(raw);
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
   } catch (e) {
     return [];
   }
 }
 
-// Хранилище в памяти
 let state = {};
 let chat = {};
 let votes = {};
@@ -40,9 +38,7 @@ let currentMode = 10;
 let isVotingOpen = false;
 let isMassacre = false;
 
-// ================= API =================
-
-// 1. Карты (игроку по токену, админке все)
+// 1. Карты
 app.get('/api/cards', (req, res) => {
   const all = loadCards();
   const t = req.query.t;
@@ -53,13 +49,13 @@ app.get('/api/cards', (req, res) => {
   res.json(all);
 });
 
-// 2. Список игроков (без ролей, для голосования)
+// 2. Список игроков (без ролей)
 app.get('/api/players', (req, res) => {
   const all = loadCards();
   res.json(all.map(c => ({ id: c.id, cipher: c.cipher || 'Нумер', randomCipher: c.randomCipher || 'А-1' })));
 });
 
-// 3. Состояние (ночь, режим, жизни, резня)
+// 3. Состояние игры
 app.get('/api/state', (req, res) => {
   res.json({ cards: state, night: currentNight, mode: currentMode, isMassacre });
 });
@@ -69,7 +65,7 @@ app.post('/api/state/:id', (req, res) => {
   res.json(state[req.params.id]);
 });
 
-// 4. Чат (для админки — все, для игрока — только его)
+// 4. Чат (для админки)
 app.get('/api/chat', (req, res) => {
   const all = loadCards();
   res.json(all.map(c => ({
@@ -111,7 +107,7 @@ app.post('/api/reset-votes', (req, res) => { votes = {}; res.json({ ok: true });
 app.get('/api/voting-status', (req, res) => res.json({ isVotingOpen }));
 app.post('/api/voting-status', (req, res) => { isVotingOpen = Boolean(req.body && req.body.isVotingOpen); res.json({ isVotingOpen }); });
 
-// 6. Управление игрой
+// 6. Управление
 app.post('/api/set-mode', (req, res) => { 
   currentMode = Number(req.body.mode); 
   res.json({ mode: currentMode }); 
