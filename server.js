@@ -2,14 +2,16 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const app = express();
-
 const PORT = process.env.PORT || 3000;
+
+// Путь к файлу с картами
+const CARDS_FILE = path.join(__dirname, 'data', 'cards.json');
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ==========================================
-// СПИСОК ТОКЕНОВ ИЗ ТВОИХ ССЫЛОК
+// ВАШИ ТОКЕНЫ (чтобы старые ссылки работали)
 // ==========================================
 const FIXED_TOKENS = [
   "7f3a9c21", // 1. Поэт
@@ -33,12 +35,7 @@ let gameCards = null;
 let isVotingOpen = false;
 let isMassacre = false;
 
-const PROFESSIONS = [
-  "Инженер", "Архитектор", "Учитель", "Бухгалтер",
-  "Программист", "Электрик", "Сварщик", "Агроном",
-  "Геолог", "Машинист", "Библиотекарь", "Химик"
-];
-
+const PROFESSIONS = ["Инженер", "Архитектор", "Учитель", "Бухгалтер", "Программист", "Электрик", "Сварщик", "Агроном", "Геолог", "Машинист", "Библиотекарь", "Химик"];
 const CIPHER_LETTERS = ["А", "Б", "В", "Г", "Д", "Е", "Ж", "З", "И", "К", "Л", "М", "Н", "П", "Р", "С", "Т", "Ф"];
 
 const GOALS = {
@@ -56,47 +53,36 @@ const GOALS = {
 function shuffle(array) {
   const arr = [...array];
   let i = arr.length, j;
-  while (i !== 0) {
-    j = Math.floor(Math.random() * i);
-    i--;
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
+  while (i !== 0) { j = Math.floor(Math.random() * i); i--; [arr[i], arr[j]] = [arr[j], arr[i]]; }
   return arr;
 }
 
 function loadCardsFromDisk() {
   try {
-    let file = path.join(__dirname, 'data', 'cards.json');
+    let file = CARDS_FILE;
     if (!fs.existsSync(file)) file = path.join(__dirname, 'public', 'cards.json');
     if (!fs.existsSync(file)) return [];
     return JSON.parse(fs.readFileSync(file, 'utf8'));
   } catch (e) {
-    console.error('Ошибка чтения cards.json:', e.message);
+    console.error('Ошибка cards.json:', e.message);
     return [];
   }
 }
 
 function getCardsWithProfessions() {
   if (gameCards) return gameCards;
-
   const allCards = loadCardsFromDisk();
   if (!allCards.length) return [];
-
-  const limit = currentMode;
-  const selectedCards = allCards.slice(0, limit);
-  
+  const selectedCards = allCards.slice(0, currentMode);
   const shuffledProfs = shuffle(PROFESSIONS);
   const shuffledLetters = shuffle(CIPHER_LETTERS);
 
-  // ПРИНУДИТЕЛЬНО ВСТАВЛЯЕМ ТВОИ ТОКЕНЫ
   selectedCards.forEach((card, index) => {
-    if (FIXED_TOKENS[index]) {
-      card.token = FIXED_TOKENS[index];
-    }
+    // Жестко задаем токены из вашего списка
+    if (FIXED_TOKENS[index]) card.token = FIXED_TOKENS[index];
 
     card.alibiProfession = shuffledProfs[index % shuffledProfs.length];
-    const letter = shuffledLetters[index % shuffledLetters.length];
-    card.randomCipher = `${letter}-${Math.floor(Math.random() * 999) + 1}`;
+    card.randomCipher = `${shuffledLetters[index % shuffledLetters.length]}-${Math.floor(Math.random() * 999) + 1}`;
 
     if (card.role === "Строитель" && GOALS[card.id]) {
       const goal = GOALS[card.id];
@@ -197,7 +183,7 @@ app.post('/api/reset', (req, res) => {
   res.json({ ok: true });
 });
 
-// САМОЕ ГЛАВНОЕ: без '0.0.0.0', иначе Netrun падает с 502
+// Запуск
 app.listen(PORT, () => {
   console.log(`▶ Server running on port ${PORT}`);
 });
