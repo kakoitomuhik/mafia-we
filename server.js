@@ -1,115 +1,61 @@
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname + '/public'));
 
-function findCardsFile() {
-  const paths = [
-    path.join(__dirname, 'data', 'cards.json'),
-    path.join(__dirname, 'public', 'cards.json'),
-    path.join(__dirname, 'cards.json')
-  ];
-  for (const p of paths) {
-    if (fs.existsSync(p)) return p;
-  }
-  return null;
-}
-
-function loadCards() {
-  const file = findCardsFile();
-  if (!file) return [];
-  try {
-    return JSON.parse(fs.readFileSync(file, 'utf8'));
-  } catch (e) {
-    return [];
-  }
-}
+// --- КАРТЫ ЗАШИТЫ ПРЯМО В КОД ---
+const CARDS = [
+  { id: 1, token: "7f3a9c21", role: "Строитель", image: "poet", goalName: "Поэт", quote: "Я говорю — и стекло трещит.", quest: "Расскажи историю, которую оценят 3 человека." },
+  { id: 2, token: "2d8e4b17", role: "Строитель", image: "propagandist", goalName: "Агитатор", quote: "Толпа — механизм. Найди рычаг.", quest: "Сделай так, чтобы за того, кого ты выбрал, проголосовало большинство." },
+  { id: 3, token: "9a1c6f52", role: "Строитель", image: "lawyer", goalName: "Юрист", quote: "Люди пишут правила. Люди ошибаются.", quest: "Оправдай того, на кого все думают." },
+  { id: 4, token: "4e7b2d98", role: "Строитель", image: "citizen", goalName: "Порядочный нумер", quote: "Чтобы выжить в стеклянном доме — стань стеклом.", quest: "Ни разу не быть выбранным на голосование." },
+  { id: 5, token: "6c3f8a41", role: "Строитель", image: "pacifist", goalName: "Пацифист", quote: "Любовь важнее закона.", quest: "Сделай так, чтобы люди не голосовали хотя бы один раз." },
+  { id: 6, token: "1b5d9e73", role: "Икона сопротивления", image: "icon", goalName: "«Икона сопротивления»", quote: "Я — цитата, которую повторят после меня.", quest: "Умереть на голосовании." },
+  { id: 7, token: "8a2e4f16", role: "Диссидент", image: "dissident2", goalName: "«Неуловимый»", quote: "Я просто ускоряю процесс.", quest: "Продержись до конца игры, не попав под казнь." },
+  { id: 8, token: "3f7c1b85", role: "Лидер сопротивления", image: "leader", goalName: "«Устранение»", quote: "Они думают, что ловят меня.", quest: "Убей Хранителя." },
+  { id: 9, token: "5e9a2d64", role: "Врач", image: "doctor", goalName: "«Хранитель Иконы»", quote: "Интеграл — это люди.", quest: "Икона должна выжить." },
+  { id: 10, token: "2c8f6e39", role: "Хранитель", image: "guardian", goalName: "«Смерть лидеру»", quote: "Я нахожу сбои.", quest: "Добейся казни Лидера." }
+];
 
 let state = {};
 let chat = {};
 let votes = {};
 let currentNight = 1;
-let currentMode = 10;
 let isVotingOpen = false;
-let isMassacre = false;
 
 app.get('/api/cards', (req, res) => {
-  const all = loadCards();
   const t = req.query.t;
   if (t) {
-    const one = all.find(c => c.token === t);
-    if (one) {
-      if (!one.alibiProfession) one.alibiProfession = "Гражданин";
-      if (!one.randomCipher) one.randomCipher = "А-" + Math.floor(Math.random() * 999);
-      return res.json(one);
+    const card = CARDS.find(c => c.token === t);
+    if (card) {
+      // Добавляем поля, которых не хватает для красоты
+      card.alibiProfession = "Гражданин";
+      card.randomCipher = "А-" + Math.floor(Math.random() * 999);
+      return res.json(card);
     }
     return res.status(404).json({ error: 'not found' });
   }
-  res.json(all);
+  res.json(CARDS);
 });
 
-app.get('/api/players', (req, res) => {
-  const all = loadCards();
-  res.json(all.map(c => ({ id: c.id, cipher: c.cipher || 'Нумер', randomCipher: c.randomCipher || 'А-1' })));
-});
+app.get('/api/state', (req, res) => res.json({ cards: state, night: currentNight, mode: 10, isMassacre: false }));
+app.post('/api/state/:id', (req, res) => { state[req.params.id] = { ...(state[req.params.id] || {}), ...req.body }; res.json(state[req.params.id]); });
 
-app.get('/api/state', (req, res) => {
-  res.json({ cards: state, night: currentNight, mode: currentMode, isMassacre });
-});
-
-app.post('/api/state/:id', (req, res) => {
-  state[req.params.id] = { ...(state[req.params.id] || {}), ...req.body };
-  res.json(state[req.params.id]);
-});
-
-app.get('/api/chat', (req, res) => {
-  const all = loadCards();
-  res.json(all.map(c => ({
-    token: c.token, cipher: c.randomCipher || c.cipher || 'Нумер', role: c.role, alibiProfession: c.alibiProfession || 'Гражданин',
-    messages: chat[c.token] || []
-  })));
-});
-
+app.get('/api/chat', (req, res) => res.json(CARDS.map(c => ({ token: c.token, cipher: c.randomCipher || c.token, role: c.role, alibiProfession: "Гражданин", messages: chat[c.token] || [] }))));
 app.get('/api/chat/:token', (req, res) => res.json(chat[req.params.token] || []));
-app.post('/api/chat/:token', (req, res) => {
-  const text = (req.body && req.body.text ? String(req.body.text) : '').trim();
-  if (!text) return res.status(400).json({ error: 'empty' });
-  (chat[req.params.token] = chat[req.params.token] || []).push({ from: 'player', text, ts: Date.now() });
-  res.json({ ok: true });
-});
-app.post('/api/chat/:token/reply', (req, res) => {
-  const text = (req.body && req.body.text ? String(req.body.text) : '').trim();
-  if (!text) return res.status(400).json({ error: 'empty' });
-  (chat[req.params.token] = chat[req.params.token] || []).push({ from: 'admin', text, ts: Date.now() });
-  res.json({ ok: true });
-});
+app.post('/api/chat/:token', (req, res) => { const t = req.params.token; (chat[t] = chat[t] || []).push({ from: 'player', text: req.body.text, ts: Date.now() }); res.json({ ok: true }); });
+app.post('/api/chat/:token/reply', (req, res) => { const t = req.params.token; (chat[t] = chat[t] || []).push({ from: 'admin', text: req.body.text, ts: Date.now() }); res.json({ ok: true }); });
 
 app.get('/api/votes', (req, res) => res.json(votes));
-app.post('/api/vote', (req, res) => {
-  const { voterId, targetId } = req.body || {};
-  if (voterId) votes[voterId] = targetId === null ? null : Number(targetId);
-  res.json({ ok: true, votes });
-});
+app.post('/api/vote', (req, res) => { if (req.body.voterId) votes[req.body.voterId] = req.body.targetId; res.json({ ok: true, votes }); });
 app.post('/api/reset-votes', (req, res) => { votes = {}; res.json({ ok: true }); });
 app.get('/api/voting-status', (req, res) => res.json({ isVotingOpen }));
-app.post('/api/voting-status', (req, res) => { isVotingOpen = Boolean(req.body && req.body.isVotingOpen); res.json({ isVotingOpen }); });
+app.post('/api/voting-status', (req, res) => { isVotingOpen = Boolean(req.body.isVotingOpen); res.json({ isVotingOpen }); });
 
-app.post('/api/set-mode', (req, res) => { currentMode = Number(req.body.mode); res.json({ mode: currentMode }); });
-app.post('/api/next-night', (req, res) => {
-  currentNight++;
-  const anyDead = Object.values(state).some(s => s && s.dead);
-  isMassacre = currentNight === 3 && !anyDead;
-  res.json({ night: currentNight, isMassacre });
-});
-app.post('/api/reset', (req, res) => {
-  state = {}; chat = {}; votes = {}; currentNight = 1; isVotingOpen = false; isMassacre = false;
-  res.json({ ok: true });
-});
+app.post('/api/set-mode', (req, res) => res.json({ mode: 10 }));
+app.post('/api/next-night', (req, res) => { currentNight++; res.json({ night: currentNight, isMassacre: false }); });
+app.post('/api/reset', (req, res) => { state = {}; chat = {}; votes = {}; currentNight = 1; isVotingOpen = false; res.json({ ok: true }); });
 
-app.listen(PORT, () => {
-  console.log('Server running on port ' + PORT);
-});
+app.listen(PORT, () => console.log('Server running on port ' + PORT));
