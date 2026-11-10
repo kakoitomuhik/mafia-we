@@ -2,7 +2,9 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const app = express();
-const PORT = process.env.PORT || 3000;
+
+// ЖЕСТКО СТАВИМ 8080, так как Netrun слушает именно его
+const PORT = 8080; 
 
 // Путь к файлу с картами
 const CARDS_FILE = path.join(__dirname, 'data', 'cards.json');
