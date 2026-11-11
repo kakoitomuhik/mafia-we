@@ -6,282 +6,241 @@
   <title>Единое Государство — Карточка Нумера</title>
   <style>
     :root {
-      --bg: #070b14;
-      --glass: rgba(14, 22, 40, 0.8);
-      --border: rgba(96, 213, 255, 0.3);
+      --glass-bg: rgba(15, 23, 42, 0.78);
+      --glass-border: rgba(96, 213, 255, 0.3);
+      --glass-glow: rgba(96, 213, 255, 0.2);
       --cyan: #60d5ff;
       --red: #ff5277;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background: var(--bg) radial-gradient(circle at 50% 15%, #10223a 0%, #060910 100%);
+      background: #080c14 radial-gradient(circle at 50% 15%, #13243c 0%, #060910 100%);
       color: #e2e8f0;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       min-height: 100vh;
       display: flex;
       justify-content: center;
+      align-items: center;
       padding: 16px;
     }
     .wrapper {
       max-width: 440px;
       width: 100%;
+    }
+
+    /* Модальное окно выбора пола */
+    .gender-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.88);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    .glass-card {
-      background: var(--glass);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--border);
-      border-radius: 16px;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
       padding: 20px;
-      text-align: center;
-      box-shadow: 0 15px 35px rgba(0,0,0,0.6);
-      position: relative;
     }
-    .seat-badge {
-      display: inline-block;
-      background: var(--cyan);
-      color: #060912;
-      font-weight: 900;
-      font-size: 13px;
-      padding: 4px 14px;
-      border-radius: 14px;
-      margin-bottom: 10px;
+    .gender-modal {
+      background: rgba(16, 26, 44, 0.95);
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 0 35px var(--glass-glow);
+      border-radius: 18px;
+      padding: 26px 20px;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+    }
+    .gender-modal h2 {
+      font-size: 19px;
+      color: #fff;
+      margin-bottom: 8px;
       letter-spacing: 1px;
     }
-    .phase-badge {
-      display: inline-block;
-      padding: 4px 12px;
+    .gender-modal p {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 22px;
+      line-height: 1.4;
+    }
+    .gender-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .gender-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border);
       border-radius: 14px;
-      font-size: 11px;
-      border: 1px solid var(--border);
+      padding: 16px 10px;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+    .gender-btn:hover {
+      background: rgba(96, 213, 255, 0.18);
+      border-color: var(--cyan);
+      transform: translateY(-2px);
+    }
+    .gender-btn span.icon {
+      font-size: 32px;
+    }
+    .gender-btn span.lbl {
+      font-size: 13px;
+      font-weight: bold;
       color: var(--cyan);
-      margin-bottom: 12px;
+    }
+
+    /* Карточка персонажа */
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 18px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.6), inset 0 0 20px var(--glass-glow);
+      padding: 24px;
+      text-align: center;
+      position: relative;
+    }
+    .top-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .seat-badge {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--cyan);
+      background: rgba(96, 213, 255, 0.15);
+      border: 1px solid var(--cyan);
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+    .gender-switch-btn {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #94a3b8;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 14px;
+      cursor: pointer;
     }
     .avatar-box {
-      width: 120px;
-      height: 120px;
+      width: 135px;
+      height: 135px;
       border-radius: 50%;
       border: 2px solid var(--cyan);
-      margin: 0 auto 12px;
+      box-shadow: 0 0 22px var(--glass-glow);
+      margin: 0 auto 14px;
+      background: rgba(0,0,0,0.5);
       overflow: hidden;
-      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .avatar-box img {
       width: 100%;
       height: 100%;
       object-fit: cover;
     }
-    h1 { font-size: 22px; color: #fff; margin-bottom: 2px; }
-    .role-text { font-size: 15px; color: var(--cyan); font-weight: bold; margin-bottom: 12px; }
+    h1 { font-size: 24px; margin-bottom: 2px; color: #fff; }
+    .role-title { font-size: 15px; font-weight: bold; color: var(--cyan); margin-bottom: 14px; }
     .quote-box {
       font-style: italic;
       color: #94a3b8;
-      font-size: 12px;
+      font-size: 13px;
+      margin-bottom: 14px;
       padding: 8px 12px;
       background: rgba(0,0,0,0.3);
       border-left: 2px solid var(--cyan);
       border-radius: 4px;
       text-align: left;
-      margin-bottom: 12px;
     }
     .block {
-      background: rgba(0,0,0,0.4);
+      background: rgba(8, 14, 24, 0.65);
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 8px;
       padding: 10px 12px;
+      margin-bottom: 10px;
       text-align: left;
-      font-size: 12px;
-      margin-bottom: 8px;
+      font-size: 13px;
     }
-    .block b { color: var(--cyan); display: block; margin-bottom: 2px; }
-
+    .block-title {
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #64748b;
+      margin-bottom: 3px;
+    }
     .dead-banner {
       display: none;
-      background: rgba(255, 82, 119, 0.2);
+      background: rgba(255, 82, 119, 0.25);
       border: 1px solid var(--red);
       color: var(--red);
       padding: 8px;
       border-radius: 8px;
-      font-weight: bold;
-      font-size: 13px;
-      margin-bottom: 12px;
-    }
-
-    /* ЧАТ */
-    .chat-card {
-      background: var(--glass);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      height: 380px;
-    }
-    .chat-msgs {
-      flex: 1;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-bottom: 10px;
-    }
-    .chat-bubble {
-      background: rgba(0,0,0,0.4);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 8px;
-      padding: 6px 10px;
       font-size: 12px;
-    }
-    .chat-bubble.system {
-      border-color: rgba(96, 213, 255, 0.4);
-      color: var(--cyan);
-    }
-    .chat-input-bar {
-      display: flex;
-      gap: 6px;
-    }
-    .chat-input-bar input {
-      flex: 1;
-      background: rgba(0,0,0,0.5);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 8px 10px;
-      color: #fff;
-      font-size: 13px;
-    }
-    .send-btn {
-      background: rgba(96, 213, 255, 0.15);
-      border: 1px solid var(--cyan);
-      color: var(--cyan);
-      border-radius: 6px;
-      padding: 0 14px;
-      cursor: pointer;
       font-weight: bold;
+      margin-bottom: 12px;
     }
   </style>
 </head>
 <body>
+
+  <!-- Окно первичного выбора пола -->
+  <div class="gender-modal-overlay" id="genderOverlay">
+    <div class="gender-modal">
+      <h2>АНКЕТА НУМЕРА</h2>
+      <p>Перед входом под Стеклянный Купол укажите гендерную маркировку гражданина:</p>
+      <div class="gender-grid">
+        <button class="gender-btn" onclick="selectGender('m')">
+          <span class="icon">👨</span>
+          <span class="lbl">МУЖСКОЙ (♂)</span>
+        </button>
+        <button class="gender-btn" onclick="selectGender('f')">
+          <span class="icon">👩</span>
+          <span class="lbl">ЖЕНСКИЙ (♀)</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div class="wrapper">
     <div class="glass-card">
-      <div id="seatBadge" class="seat-badge">МЕСТО № ...</div>
-      <div><span id="phaseBadge" class="phase-badge">Синхронизация...</span></div>
-      
-      <div id="deadNotice" class="dead-banner">ВЫ КАЗНЕНЫ ПОД КОЛОКОЛОМ БЛАГОДЕТЕЛЯ</div>
+      <div class="top-meta">
+        <div class="seat-badge" id="seatBadge">МЕСТО ...</div>
+        <button class="gender-switch-btn" onclick="openGenderModal()">Сменить пол ⚥</button>
+      </div>
+
+      <div class="dead-banner" id="deadBanner">АННИГИЛИРОВАН ПОД КУПОЛОМ БЛАГОДЕТЕЛЯ</div>
 
       <div class="avatar-box">
         <img id="avatarImg" src="/poet_m.png" alt="Аватар">
       </div>
 
       <h1 id="pName">Нумер...</h1>
-      <div id="pRole" class="role-text">Роль: ...</div>
-      <div id="pQuote" class="quote-box">«...»</div>
+      <div class="role-title" id="pRole">Роль: ...</div>
+      <div class="quote-box" id="pQuote">«...»</div>
 
       <div class="block">
-        <b>Цель Нумера (Квест победы):</b>
-        <span id="pQuest">-</span>
+        <div class="block-title">Квест Нумера (Условие победы)</div>
+        <div id="pQuest" style="color: #cbd5e1;">-</div>
       </div>
 
       <div class="block">
-        <b>Ночное предписание:</b>
-        <span id="pNight">-</span>
-      </div>
-    </div>
-
-    <!-- Чат игрока -->
-    <div class="chat-card">
-      <div style="font-size: 13px; font-weight: bold; color: var(--cyan); margin-bottom: 8px;">МЕМБРАНА ГОРОДА (ЧАТ)</div>
-      <div class="chat-msgs" id="chatMsgs"></div>
-      <div class="chat-input-bar">
-        <input type="text" id="playerMsg" placeholder="Сообщение в эфир..." onkeydown="if(event.key==='Enter') sendMsg()">
-        <button class="send-btn" onclick="sendMsg()">></button>
+        <div class="block-title">Ночное действие (Личный час)</div>
+        <div id="pNight" style="color: #cbd5e1;">-</div>
       </div>
     </div>
   </div>
 
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const seat = params.get('seat');
-    const token = params.get('t');
-
-    let currentCard = null;
-
-    async function fetchCard() {
-      try {
-        const query = seat ? `seat=${seat}` : `t=${token}`;
-        const res = await fetch(`/api/cards?${query}`);
-        if (!res.ok) throw new Error('Не найдено');
-        const c = await res.json();
-        currentCard = c;
-
-        document.getElementById('seatBadge').textContent = `МЕСТО № ${c.seat} • ШИФР: ${c.cipher}`;
-        document.getElementById('pName').textContent = `${c.name} (${c.cipher})`;
-        document.getElementById('pRole').textContent = `Роль: ${c.role}`;
-        document.getElementById('pQuote').textContent = c.quote;
-        document.getElementById('pQuest').textContent = c.quest;
-        document.getElementById('pNight').textContent = c.night;
-
-        let ph = 'День';
-        if (c.gamePhase === 'voting') ph = 'Голосование';
-        if (c.gamePhase === 'night') ph = 'Личный час (Ночь)';
-        document.getElementById('phaseBadge').textContent = `${ph} • Раунд ${c.round}`;
-
-        const deadBox = document.getElementById('deadNotice');
-        deadBox.style.display = c.alive ? 'none' : 'block';
-
-        const img = document.getElementById('avatarImg');
-        img.src = `/${c.image}.png`;
-        img.onerror = () => { img.src = '/poet_m.png'; };
-      } catch (err) {
-        document.getElementById('pName').textContent = 'QR-код не распознан';
-      }
-    }
-
-    async function fetchChat() {
-      try {
-        const res = await fetch('/api/chat');
-        const msgs = await res.json();
-        const box = document.getElementById('chatMsgs');
-        box.innerHTML = msgs.map(m => `
-          <div class="chat-bubble ${m.system ? 'system' : ''}">
-            <div style="font-weight:bold; font-size:11px; margin-bottom:2px; color: #60d5ff;">${m.author} <span style="font-weight:normal; font-size:9px; color:#64748b;">${m.time}</span></div>
-            <div>${m.text}</div>
-          </div>
-        `).join('');
-      } catch (e) {}
-    }
-
-    async function sendMsg() {
-      const input = document.getElementById('playerMsg');
-      const val = input.value.trim();
-      if (!val || !currentCard) return;
-
-      if (!currentCard.alive) {
-        alert('Казнённый нумер не может говорить через мембрану!');
-        return;
-      }
-
-      await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          seat: currentCard.seat,
-          token: currentCard.token,
-          text: val
-        })
-      });
-      input.value = '';
-      fetchChat();
-    }
-
-    fetchCard();
-    fetchChat();
-    setInterval(() => {
-      fetchCard();
-      fetchChat();
-    }, 3000);
-  </script>
+  <script src="/card.js"></script>
 </body>
 </html>
