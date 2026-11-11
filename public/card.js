@@ -1,13 +1,50 @@
-const escapeHtml = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-}[c]));
+document.addEventListener('DOMContentLoaded', async () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('t');
 
-const token = new URLSearchParams(location.search).get('t');
-const app = document.getElementById('app');
+  if (!token) {
+    alert('Ошибка: токен игрока не указан! Перейдите по ссылке с ?t=ваш_токен');
+    return;
+  }
 
-let card = null;
-let userGender = localStorage.getItem('gender_' + token);
-let roleRevealed = localStorage.getItem('revealed_' + token) === 'true';
+  // Элементы DOM (если они есть в card.html)
+  const roleEl = document.getElementById('roleName');
+  const nameEl = document.getElementById('playerName');
+  const descEl = document.getElementById('roleDescription');
+  const quoteEl = document.getElementById('roleQuote');
+  const imgEl = document.getElementById('roleImage');
+  const phaseEl = document.getElementById('gamePhase');
+
+  async function loadCardData() {
+    try {
+      const res = await fetch(`/api/cards?t=${token}`);
+      if (!res.ok) {
+        throw new Error((await res.json()).error || 'Ошибка загрузки карточки');
+      }
+      const data = await res.json();
+
+      if (roleEl) roleEl.textContent = data.role;
+      if (nameEl) nameEl.textContent = data.name;
+      if (descEl) descEl.textContent = data.description;
+      if (quoteEl) quoteEl.textContent = `"${data.quote}"`;
+      if (phaseEl) phaseEl.textContent = `Фаза: ${data.gamePhase} (Раунд ${data.round})`;
+
+      if (imgEl && data.image) {
+        imgEl.src = `${data.image}.png`;
+        imgEl.onerror = () => { imgEl.src = 'poet.png'; }; // фоллбэк если файла нет
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Не удалось загрузить данные карты: ' + err.message);
+    }
+  }
+
+  // Обновляем карточку при старте
+  await loadCardData();
+
+  // Периодический опрос состояния игры каждые 3 сек
+  setInterval(loadCardData, 3000);
+});
 let intervalState = null;
 let intervalChat = null;
 let lastSnapshot = '';
