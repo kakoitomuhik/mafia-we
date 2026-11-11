@@ -1,53 +1,68 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const token = urlParams.get('t');
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('t');
 
-  const roleEl = document.getElementById('roleName');
-  const nameEl = document.getElementById('playerName');
-  const descEl = document.getElementById('roleDescription');
-  const quoteEl = document.getElementById('roleQuote');
-  const imgEl = document.getElementById('roleImage');
+  const cardBox = document.getElementById('cardBox');
   const phaseEl = document.getElementById('gamePhase');
+  const imgEl = document.getElementById('playerImage');
+  const nameEl = document.getElementById('playerName');
+  const roleEl = document.getElementById('playerRole');
+  const descEl = document.getElementById('playerDesc');
+  const questEl = document.getElementById('playerQuest');
+  const nightEl = document.getElementById('playerNight');
+  const quoteEl = document.getElementById('playerQuote');
 
   if (!token) {
-    if (descEl) descEl.textContent = 'Ошибка: токен не найден в адресе. Ссылка должна быть вида ?t=код';
+    cardBox.innerHTML = `
+      <div class="error-box">
+        <h3>ОШИБКА ДОСТУПА</h3>
+        <p>Токен гражданина не указан в строке адреса.</p>
+        <p style="margin-top: 8px; font-size: 12px; color: #a0aec0;">Ссылка должна иметь вид: /card.html?t=ВАШ_ТОКЕН</p>
+      </div>
+    `;
     return;
   }
 
-  async function loadData() {
+  async function loadCard() {
     try {
       const res = await fetch(`/api/cards?t=${encodeURIComponent(token)}`);
+      
+      // Проверяем Content-Type: если сервер вернул HTML вместо JSON, не парсим его
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error(`Сервер вернул ответ не в формате JSON (${res.status})`);
+      }
+
+      const data = await res.json();
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || 'Ошибка загрузки карточки');
+        throw new Error(data.error || 'Не удалось найти нумер');
       }
 
-      const card = await res.json();
+      // Обновляем страницу данными
+      nameEl.textContent = data.name;
+      roleEl.textContent = data.role;
+      descEl.textContent = data.description || 'Нет данных';
+      questEl.textContent = data.quest || 'Следовать всеобщему благу';
+      nightEl.textContent = data.night || 'Сон по расписанию Часовой Скрижали';
+      quoteEl.textContent = data.quote ? `«${data.quote}»` : '';
 
-      if (nameEl) nameEl.textContent = card.name;
-      if (roleEl) {
-        roleEl.textContent = card.role;
-        roleEl.style.color = card.team === 'mafia' ? '#e53e3e' : '#38a169';
-      }
-      if (descEl) descEl.textContent = card.description;
-      if (quoteEl) quoteEl.textContent = card.quote ? `«${card.quote}»` : '';
-
-      if (phaseEl) {
-        let phaseRu = 'День';
-        if (card.gamePhase === 'night') phaseRu = 'Ночь';
-        if (card.gamePhase === 'voting') phaseRu = 'Голосование';
-        phaseEl.textContent = `Фаза: ${phaseRu} (Раунд ${card.round})`;
-      }
-
-      if (imgEl && card.image) {
-        imgEl.src = `/${card.image}.png`;
+      if (imgEl && data.image) {
+        imgEl.src = `/${data.image}.png`;
         imgEl.onerror = () => { imgEl.src = '/poet.png'; };
       }
-    } catch (e) {
-      if (descEl) descEl.textContent = e.message;
+
+      if (phaseEl) {
+        let phaseRu = 'ДЕНЬ';
+        if (data.gamePhase === 'voting') phaseRu = 'ГОЛОСОВАНИЕ';
+        if (data.gamePhase === 'night') phaseRu = 'НОЧЬ';
+        phaseEl.textContent = `СКРИЖАЛЬ: ${phaseRu} • РАУНД ${data.round}`;
+      }
+    } catch (err) {
+      console.error(err);
+      descEl.innerHTML = `<span style="color: #fc8181;">${err.message}</span>`;
     }
   }
 
-  await loadData();
-  setInterval(loadData, 3000);
+  await loadCard();
+  setInterval(loadCard, 3500);
 });
