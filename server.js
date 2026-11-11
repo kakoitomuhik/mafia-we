@@ -1,177 +1,168 @@
 const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
+
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// --- 1. БЕЗОПАСНОСТЬ И НАСТРОЙКИ ---
-// Разрешаем запросы с любого домена (для разработки). 
-// В продакшене замените '*' на адрес вашего фронтенда.
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(204);
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Загрузка карт из public/data/cards.json
+const CARDS_PATH = path.join(__dirname, 'public', 'data', 'cards.json');
+let cards = [];
+
+function loadCards() {
+  try {
+    if (fs.existsSync(CARDS_PATH)) {
+      const raw = fs.readFileSync(CARDS_PATH, 'utf-8');
+      cards = JSON.parse(raw);
+      console.log(`[DATA] Успешно загружено карт: ${cards.length}`);
+    } else {
+      console.warn(`[DATA] Файл ${CARDS_PATH} не найден! Создаю заглушку.`);
+      cards = [];
+    }
+  } catch (err) {
+    console.error('[DATA] Ошибка при чтении cards.json:', err.message);
+    cards = [];
   }
-  next();
+}
+loadCards();
+
+// Игровое состояние
+let gameState = {
+  phase: 'day', // 'day' | 'night' | 'voting' | 'ended'
+  round: 1,
+  killedPlayerId: null,
+  votes: {},        // { voterToken: targetCardId }
+  chatMessages: [], // { id, author, text, role, time }
+  actionLogs: []    // логи ночных действий
+};
+
+// Главная страница: редирект на index.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Защита от падения при невалидном JSON
-app.use(express.json({ limit: '1mb', strict: true }));
-app.use(express.static(__dirname + '/public'));
-
-// --- 2. КАРТЫ ---
-const CARDS = [ 
-  { 
-    id: 1, token: "7f3a9c21", role: "Строитель", image: "poet", 
-    goalName: "Поэт", goalNameF: "Поэтесса", 
-    quote: "Я говорю — и стекло трещит.", 
-    quest: "Расскажи историю, которую оценят 3 человека.", 
-    legend: { m: "Ты — поэт. Твои слова живут дольше тебя.", f: "Ты — поэтесса. Твои слова живут дольше тебя." } 
-  },
-  // ... остальные карты из вашего массива
-];
-
-// --- 3. ПАМЯТЬ (Временное решение) ---
-// ВНИМАНИЕ: При перезагрузке сервера данные обнулятся.
-// Для продакшена используйте Redis или базу данных.
-let state = {};
-let chat = {};
-let votes = {};
-let currentNight = 1;
-let isVotingOpen = false;
-let isMassacre = false;
-
-// --- 4. ВАЛИДАЦИЯ (Вспомогательные функции) ---
-const validateToken = (token) => typeof token === 'string' && token.length === 8;
-const validateText = (text) => typeof text === 'string' && text.length > 0 && text.length < 500;
-
-// --- 5. API ДЛЯ КАРТ ---
+// API: Получить карту по токену
 app.get('/api/cards', (req, res) => {
-  const t = req.query.t;
-  if (t) {
-    if (!validateToken(t)) {
-      return res.status(400).json({ error: 'Invalid token format' });
-    }
-    const card = CARDS.find(c => c.token === t);
-    if (card) {
-      const cardCopy = { ...card, alibiProfession: "Гражданин", randomCipher: "А-" + Math.floor(Math.random() * 999) };
-      return res.json(cardCopy);
-    }
-    return res.status(404).json({ error: 'not found' });
-  }
-  res.json(CARDS);
-});
-
-// --- 6. API ДЛЯ СОСТОЯНИЯ ---
-app.get('/api/state', (req, res) => 
-  res.json({ cards: state, night: currentNight, mode: 10, isMassacre })
-);
-
-app.post('/api/state/:id', (req, res) => { 
-  const id = req.params.id;
-  const payload = req.body;
-  
-  if (typeof id !== 'string' || typeof payload !== 'object' || payload === null) {
-    return res.status(400).json({ error: 'Bad request' });
-  }
-  
-  // Защита от полной перезаписи объекта (частичная валидация)
-  state[id] = { ...(state[id] || {}), ...payload };
-  res.json(state[id]); 
-});
-
-// --- 7. API ДЛЯ ЧАТА ---
-app.get('/api/chat', (req, res) => { 
-  // Возвращаем только существующие чаты, а не заглушки для всех карт
-  const activeChats = Object.keys(chat).map(token => ({
-    token,
-    role: CARDS.find(c => c.token === token)?.role || 'Unknown',
-    messages: chat[token] || []
-  }));
-  res.json(activeChats); 
-});
-
-app.get('/api/chat/:token', (req, res) => {
-  const t = req.params.token;
-  if (!validateToken(t)) return res.status(400).json({ error: 'Invalid token' });
-  res.json(chat[t] || []);
-});
-
-app.post('/api/chat/:token', (req, res) => { 
-  const t = req.params.token;
-  const text = req.body.text;
-  
-  if (!validateToken(t) || !validateText(text)) {
-    return res.status(400).json({ error: 'Invalid data' });
+  const token = req.query.t;
+  if (!token) {
+    return res.status(400).json({ error: 'Параметр токена t отсутствует' });
   }
 
-  (chat[t] = chat[t] || []).push({ 
-    from: 'player', 
-    text, 
-    ts: Date.now() 
+  const card = cards.find(c => c.token === token);
+  if (!card) {
+    return res.status(404).json({ error: 'Карта с таким токеном не найдена' });
+  }
+
+  res.json({
+    id: card.id,
+    name: card.name,
+    role: card.role,
+    team: card.team,
+    image: card.image,
+    description: card.description,
+    quote: card.quote,
+    gamePhase: gameState.phase,
+    round: gameState.round
   });
-  res.json({ ok: true });
 });
 
-app.post('/api/chat/:token/reply', (req, res) => { 
-  const t = req.params.token;
-  const text = req.body.text;
-  
-  if (!validateToken(t) || !validateText(text)) {
-    return res.status(400).json({ error: 'Invalid data' });
+// API: Список всех карт (для панели администратора)
+app.get('/api/admin/cards', (req, res) => {
+  res.json(cards);
+});
+
+// API: Получить текущее состояние игры
+app.get('/api/state', (req, res) => {
+  res.json(gameState);
+});
+
+// API: Смена фазы (день / ночь / голосование)
+app.post('/api/admin/phase', (req, res) => {
+  const { phase } = req.body;
+  if (!['day', 'night', 'voting', 'ended'].includes(phase)) {
+    return res.status(400).json({ error: 'Недопустимая фаза' });
   }
 
-  (chat[t] = chat[t] || []).push({ 
-    from: 'admin', 
-    text, 
-    ts: Date.now() 
-  });
-  res.json({ ok: true });
+  gameState.phase = phase;
+  if (phase === 'day') {
+    gameState.round += 1;
+    gameState.votes = {}; // сброс голосов нового дня
+  }
+
+  console.log(`[GAME] Фаза изменена на: ${phase}, Раунд: ${gameState.round}`);
+  res.json({ success: true, gameState });
 });
 
-// --- 8. API ДЛЯ ГОЛОСОВАНИЯ ---
-app.get('/api/votes', (req, res) => res.json(votes));
+// API: Сброс игры
+app.post('/api/admin/reset', (req, res) => {
+  gameState = {
+    phase: 'day',
+    round: 1,
+    killedPlayerId: null,
+    votes: {},
+    chatMessages: [],
+    actionLogs: []
+  };
+  loadCards(); // перечитываем JSON на случай правок
+  console.log('[GAME] Состояние игры сброшено');
+  res.json({ success: true, message: 'Игра успешно сброшена', gameState });
+});
 
+// API: Голосование
 app.post('/api/vote', (req, res) => {
-  const { voterId, targetId } = req.body;
-  if (typeof voterId === 'string' && typeof targetId === 'string') {
-    votes[voterId] = targetId;
+  const { voterToken, targetId } = req.body;
+  if (!voterToken || targetId === undefined) {
+    return res.status(400).json({ error: 'Недостаточно данных для голоса' });
   }
-  res.json({ ok: true, votes });
-});
 
-app.post('/api/reset-votes', (req, res) => { 
-  votes = {}; 
-  res.json({ ok: true }); 
-});
-
-app.get('/api/voting-status', (req, res) => res.json({ isVotingOpen }));
-
-app.post('/api/voting-status', (req, res) => { 
-  const { isVotingOpen: status } = req.body;
-  if (typeof status === 'boolean') {
-    isVotingOpen = status;
+  const voter = cards.find(c => c.token === voterToken);
+  if (!voter) {
+    return res.status(403).json({ error: 'Неверный токен игрока' });
   }
-  res.json({ isVotingOpen });
+
+  gameState.votes[voterToken] = targetId;
+  res.json({ success: true, votes: gameState.votes });
 });
 
-// --- 9. АДМИНКА ---
-app.post('/api/next-night', (req, res) => { 
-  currentNight++; 
-  // Сброс флагов при наступлении нового дня
-  isMassacre = false; 
-  res.json({ night: currentNight, isMassacre });
+// API: Чат
+app.get('/api/chat', (req, res) => {
+  res.json(gameState.chatMessages);
 });
 
-app.post('/api/reset', (req, res) => { 
-  state = {}; 
-  chat = {}; 
-  votes = {}; 
-  currentNight = 1; 
-  isVotingOpen = false; 
-  isMassacre = false; 
-  res.json({ ok: true }); 
+app.post('/api/chat', (req, res) => {
+  const { token, text } = req.body;
+  if (!text || !text.trim()) {
+    return res.status(400).json({ error: 'Пустое сообщение' });
+  }
+
+  const sender = cards.find(c => c.token === token) || { name: 'Гость', role: 'Наблюдатель' };
+
+  const message = {
+    id: Date.now(),
+    author: sender.name,
+    role: sender.role,
+    text: text.trim().slice(0, 300),
+    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  };
+
+  gameState.chatMessages.push(message);
+  if (gameState.chatMessages.length > 50) {
+    gameState.chatMessages.shift(); // храним до 50 сообщений
+  }
+
+  res.json({ success: true, message });
 });
 
-// --- 10. ЗАПУСК ---
-app.listen(PORT, () => console.log('Server running on port ' + PORT));
+// Запуск сервера
+app.listen(PORT, () => {
+  console.log(`========================================`);
+  console.log(` Сервер Мафии запущен на http://localhost:${PORT}`);
+  console.log(` Карточка: http://localhost:${PORT}/card.html?t=7f3a9c21`);
+  console.log(` Админка:  http://localhost:${PORT}/admin.html`);
+  console.log(`========================================`);
+});
