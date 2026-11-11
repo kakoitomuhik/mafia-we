@@ -1,19 +1,29 @@
 const express = require('express');
-const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-app.use(cors());
+// Встроенный CORS без сторонних библиотек
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Загрузка карт из public/data/cards.json
+// Путь к файлу с данными карт
 const CARDS_PATH = path.join(__dirname, 'public', 'data', 'cards.json');
 let cards = [];
 
+// Функция загрузки данных
 function loadCards() {
   try {
     if (fs.existsSync(CARDS_PATH)) {
@@ -21,7 +31,7 @@ function loadCards() {
       cards = JSON.parse(raw);
       console.log(`[DATA] Успешно загружено карт: ${cards.length}`);
     } else {
-      console.warn(`[DATA] Файл ${CARDS_PATH} не найден! Создаю заглушку.`);
+      console.warn(`[DATA] Файл ${CARDS_PATH} не найден!`);
       cards = [];
     }
   } catch (err) {
@@ -37,16 +47,16 @@ let gameState = {
   round: 1,
   killedPlayerId: null,
   votes: {},        // { voterToken: targetCardId }
-  chatMessages: [], // { id, author, text, role, time }
-  actionLogs: []    // логи ночных действий
+  chatMessages: [], // { id, author, role, text, time }
+  actionLogs: []
 };
 
-// Главная страница: редирект на index.html
+// Главная страница: отдаём index.html
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// API: Получить карту по токену
+// API: Получить карту игрока по токену
 app.get('/api/cards', (req, res) => {
   const token = req.query.t;
   if (!token) {
@@ -71,34 +81,34 @@ app.get('/api/cards', (req, res) => {
   });
 });
 
-// API: Список всех карт (для панели администратора)
+// API: Получить все карты (для панели ведущего)
 app.get('/api/admin/cards', (req, res) => {
   res.json(cards);
 });
 
-// API: Получить текущее состояние игры
+// API: Получить текущее состояние партии
 app.get('/api/state', (req, res) => {
   res.json(gameState);
 });
 
-// API: Смена фазы (день / ночь / голосование)
+// API: Смена фазы (день, ночь, голосование)
 app.post('/api/admin/phase', (req, res) => {
   const { phase } = req.body;
   if (!['day', 'night', 'voting', 'ended'].includes(phase)) {
-    return res.status(400).json({ error: 'Недопустимая фаза' });
+    return res.status(400).json({ error: 'Недопустимая фаза игры' });
   }
 
   gameState.phase = phase;
   if (phase === 'day') {
     gameState.round += 1;
-    gameState.votes = {}; // сброс голосов нового дня
+    gameState.votes = {}; // сброс дневного голосования
   }
 
-  console.log(`[GAME] Фаза изменена на: ${phase}, Раунд: ${gameState.round}`);
+  console.log(`[GAME] Фаза: ${phase}, Раунд: ${gameState.round}`);
   res.json({ success: true, gameState });
 });
 
-// API: Сброс игры
+// API: Сброс игры ведущим
 app.post('/api/admin/reset', (req, res) => {
   gameState = {
     phase: 'day',
@@ -108,8 +118,8 @@ app.post('/api/admin/reset', (req, res) => {
     chatMessages: [],
     actionLogs: []
   };
-  loadCards(); // перечитываем JSON на случай правок
-  console.log('[GAME] Состояние игры сброшено');
+  loadCards(); // перезагружаем карты из cards.json
+  console.log('[GAME] Игра сброшена');
   res.json({ success: true, message: 'Игра успешно сброшена', gameState });
 });
 
@@ -117,19 +127,19 @@ app.post('/api/admin/reset', (req, res) => {
 app.post('/api/vote', (req, res) => {
   const { voterToken, targetId } = req.body;
   if (!voterToken || targetId === undefined) {
-    return res.status(400).json({ error: 'Недостаточно данных для голоса' });
+    return res.status(400).json({ error: 'Не переданы параметры для голосования' });
   }
 
   const voter = cards.find(c => c.token === voterToken);
   if (!voter) {
-    return res.status(403).json({ error: 'Неверный токен игрока' });
+    return res.status(403).json({ error: 'Игрок с таким токеном не найден' });
   }
 
   gameState.votes[voterToken] = targetId;
   res.json({ success: true, votes: gameState.votes });
 });
 
-// API: Чат
+// API: Сообщения чата
 app.get('/api/chat', (req, res) => {
   res.json(gameState.chatMessages);
 });
@@ -137,7 +147,7 @@ app.get('/api/chat', (req, res) => {
 app.post('/api/chat', (req, res) => {
   const { token, text } = req.body;
   if (!text || !text.trim()) {
-    return res.status(400).json({ error: 'Пустое сообщение' });
+    return res.status(400).json({ error: 'Пустой текст сообщения' });
   }
 
   const sender = cards.find(c => c.token === token) || { name: 'Гость', role: 'Наблюдатель' };
@@ -152,17 +162,18 @@ app.post('/api/chat', (req, res) => {
 
   gameState.chatMessages.push(message);
   if (gameState.chatMessages.length > 50) {
-    gameState.chatMessages.shift(); // храним до 50 сообщений
+    gameState.chatMessages.shift();
   }
 
   res.json({ success: true, message });
 });
 
-// Запуск сервера
+// Запуск приложения
 app.listen(PORT, () => {
   console.log(`========================================`);
-  console.log(` Сервер Мафии запущен на http://localhost:${PORT}`);
-  console.log(` Карточка: http://localhost:${PORT}/card.html?t=7f3a9c21`);
+  console.log(` Сервер запущен на http://localhost:${PORT}`);
+  console.log(` Меню:     http://localhost:${PORT}/`);
   console.log(` Админка:  http://localhost:${PORT}/admin.html`);
+  console.log(` Карточка: http://localhost:${PORT}/card.html?t=7f3a9c21`);
   console.log(`========================================`);
 });
