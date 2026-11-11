@@ -1,99 +1,96 @@
-// Автоматически берем текущий хост и протокол браузера (подходит и для localhost, и для Нитрана)
-const baseUrl = window.location.origin;
+const origin = window.location.origin;
 
-async function updateState() {
+async function fetchState() {
   try {
     const res = await fetch('/api/state');
     if (!res.ok) return;
     const state = await res.json();
-    
+
     const badge = document.getElementById('statusBadge');
     if (badge) {
       badge.className = `badge ${state.phase}`;
-      let phaseName = 'День';
-      if (state.phase === 'night') phaseName = 'Ночь';
-      if (state.phase === 'voting') phaseName = 'Голосование';
-      if (state.phase === 'ended') phaseName = 'Конец';
-      badge.textContent = `Фаза: ${phaseName} | Раунд ${state.round}`;
+      let text = 'День';
+      if (state.phase === 'voting') text = 'Голосование';
+      if (state.phase === 'night') text = 'Ночь';
+      badge.textContent = `${text} • Раунд ${state.round}`;
     }
   } catch (err) {
-    console.error('Ошибка обновления состояния:', err);
+    console.error('Ошибка опроса состояния:', err);
   }
 }
 
-async function loadCards() {
+async function fetchCards() {
+  const container = document.getElementById('cardsGrid');
   try {
     const res = await fetch('/api/admin/cards');
-    if (!res.ok) throw new Error('Не удалось получить список карт');
+    if (!res.ok) throw new Error('Ошибка связи с сервером');
     const cards = await res.json();
 
-    const list = document.getElementById('playersList');
-    if (!list) return;
-
-    if (cards.length === 0) {
-      list.innerHTML = '<p>Карты не найдены. Проверьте public/data/cards.json</p>';
+    if (!cards || cards.length === 0) {
+      container.innerHTML = '<p>В базе cards.json нет карт.</p>';
       return;
     }
 
-    list.innerHTML = cards.map(c => {
-      const playerUrl = `${baseUrl}/card.html?t=${c.token}`;
-      const teamClass = c.team === 'mafia' ? 'mafia' : 'peaceful';
-      const teamName = c.team === 'mafia' ? 'Мафия' : 'Мирные';
+    container.innerHTML = cards.map(c => {
+      const cardUrl = `${origin}/card.html?t=${c.token}`;
+      let teamName = 'Строители Интеграла';
+      if (c.team === 'resistance') teamName = 'Мефи (Сопротивление)';
+      if (c.team === 'guardian') teamName = 'Хранители';
 
       return `
-        <div class="player-card ${teamClass}">
-          <strong>${c.name}</strong>
-          <div><b>Роль:</b> ${c.role} (${teamName})</div>
-          <div class="token-box">
-            <a href="${playerUrl}" target="_blank">Открыть карту</a>
+        <div class="card ${c.team}">
+          <div>
+            <div class="card-title">${c.name} — ${c.role}</div>
+            <div class="card-meta">Фракция: <b>${teamName}</b></div>
+            <div class="card-quest"><b>Цель:</b> ${c.quest || 'Не указана'}</div>
           </div>
-          <button class="copy-btn" onclick="copyLink('${playerUrl}')">📋 Скопировать ссылку игрока</button>
+          <div>
+            <button class="copy-btn" onclick="copyCardUrl('${cardUrl}')">📋 Скопировать ссылку игрока</button>
+          </div>
         </div>
       `;
     }).join('');
   } catch (err) {
-    console.error(err);
-    document.getElementById('playersList').innerHTML = `<p style="color: #e53e3e;">Ошибка: ${err.message}</p>`;
+    container.innerHTML = `<p style="color: #e53e3e;">Не удалось загрузить карточки: ${err.message}</p>`;
   }
 }
 
 window.setPhase = async function(phase) {
   try {
-    const res = await fetch('/api/admin/phase', {
+    await fetch('/api/admin/phase', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phase })
     });
-    if (res.ok) updateState();
-  } catch (e) {
-    alert('Ошибка при смене фазы');
+    fetchState();
+  } catch (err) {
+    alert('Не удалось изменить фазу');
   }
 };
 
 window.resetGame = async function() {
-  if (confirm('Сбросить состояние игры и все голоса?')) {
+  if (confirm('Сбросить игру и все голоса?')) {
     try {
-      const res = await fetch('/api/admin/reset', { method: 'POST' });
-      if (res.ok) {
-        updateState();
-        loadCards();
-      }
-    } catch (e) {
+      await fetch('/api/admin/reset', { method: 'POST' });
+      fetchState();
+    } catch (err) {
       alert('Ошибка при сбросе');
     }
   }
 };
 
-window.copyLink = function(url) {
-  navigator.clipboard.writeText(url).then(() => {
-    alert('Ссылка скопирована в буфер обмена!');
-  }).catch(() => {
+window.copyCardUrl = function(url) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      alert('Ссылка игрока скопирована в буфер обмена!');
+    }).catch(() => prompt('Скопируйте ссылку вручную:', url));
+  } else {
     prompt('Скопируйте ссылку вручную:', url);
-  });
+  }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  updateState();
-  loadCards();
-  setInterval(updateState, 3000);
+  fetchState();
+  fetchCards();
+  setInterval(fetchState, 3000);
 });
