@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мафия — Главное меню</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0f111a;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .menu-card {
+      background: #1a1d29;
+      border: 1px solid #2d3748;
+      border-radius: 14px;
+      padding: 32px;
+      max-width: 440px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    h1 { margin-bottom: 8px; color: #f56565; letter-spacing: 1px; }
+    p { color: #a0aec0; margin-bottom: 24px; font-size: 14px; }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 12px;
+      background: #e53e3e;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: #c53030; }
+    .btn-secondary {
+      background: #2d3748;
+    }
+    .btn-secondary:hover { background: #4a5568; }
+    .tokens-list {
+      margin-top: 20px;
+      text-align: left;
+      font-size: 13px;
+      background: #12141c;
+      padding: 12px;
+      border-radius: 6px;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+    .tokens-list div { margin-bottom: 6px; }
+    .tokens-list a { color: #63b3ed; text-decoration: none; }
+    .tokens-list a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="menu-card">
+    <h1>ГОРОД ЗАСЫПАЕТ</h1>
+    <p>Онлайн-помощник для ведущего и игроков в Мафию</p>
+    
+    <a href="/admin.html" class="btn">Панель Ведущего (Admin)</a>
+    <a href="/card.html?t=7f3a9c21" class="btn btn-secondary">Тестовая карточка игрока</a>
+
+    <div style="margin-top: 18px; color: #718096; font-size: 12px;">Быстрый вход по картам:</div>
+    <div class="tokens-list" id="tokensList">Загрузка карт...</div>
+  </div>
+
+  <script>
+    fetch('/api/admin/cards')
+      .then(res => res.json())
+      .then(cards => {
+        const box = document.getElementById('tokensList');
+        box.innerHTML = cards.map(c => 
+          `<div><b>${c.role}</b>: <a href="/card.html?t=${c.token}">${c.name} (${c.token})</a></div>`
+        ).join('');
+      })
+      .catch(() => {
+        document.getElementById('tokensList').innerText = 'Не удалось загрузить карты';
+      });
+  </script>
+</body>
+</html>
