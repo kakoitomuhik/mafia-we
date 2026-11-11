@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -18,55 +19,72 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Чтение карт из public/data/cards.json
 const CARDS_PATH = path.join(__dirname, 'public', 'data', 'cards.json');
 let cards = [];
 
-function loadCards() {
+// Генератор случайного шифра в стиле Замятина (буква + число)
+function generateRandomCipher(used) {
+  const letters = ['Д', 'I', 'О', 'Р', 'S', 'Ю', 'Ф', 'К', 'М', 'Б', 'Т', 'А', 'Н', 'Э'];
+  let cipher = '';
+  do {
+    const letter = letters[Math.floor(Math.random() * letters.length)];
+    const num = Math.floor(10 + Math.random() * 8990);
+    cipher = `${letter}-${num}`;
+  } while (used.has(cipher));
+  used.add(cipher);
+  return cipher;
+}
+
+// Загрузка карт и рандомизация шифров нумеров
+function randomizeCiphers() {
   try {
     if (fs.existsSync(CARDS_PATH)) {
       const raw = fs.readFileSync(CARDS_PATH, 'utf-8');
-      cards = JSON.parse(raw);
-      console.log(`[DATA] Загружено карт: ${cards.length}`);
+      const baseCards = JSON.parse(raw);
+      const usedCiphers = new Set();
+      
+      cards = baseCards.map(c => ({
+        ...c,
+        cipher: generateRandomCipher(usedCiphers)
+      }));
+      console.log(`[DATA] Загружено 10 карт, сгенерированы новые шифры.`);
     } else {
-      console.warn(`[DATA] cards.json не найден по пути: ${CARDS_PATH}`);
+      console.warn(`[DATA] cards.json не найден: ${CARDS_PATH}`);
       cards = [];
     }
   } catch (err) {
-    console.error('[DATA] Ошибка разбора cards.json:', err.message);
-    cards = [];
+    console.error('[DATA] Ошибка чтения карт:', err.message);
   }
 }
-loadCards();
+randomizeCiphers();
 
-// Состояние сессии в памяти
+// Состояние сессии
 let gameState = {
-  phase: 'day', // 'day' | 'voting' | 'night'
+  phase: 'day',
   round: 1,
   votes: {},
   chatMessages: []
 };
 
-// Редирект с корня сайта на панель Благодетеля
+// Редирект на админку
 app.get('/', (req, res) => {
   res.redirect('/admin.html');
 });
 
-// Проверка активности контейнера для хостинга
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', uptime: process.uptime() });
+  res.status(200).json({ status: 'ok', playersCount: cards.length });
 });
 
-// API: Карточка игрока по токену ?t=...
+// Получение карты игрока по токену ?t=...
 app.get('/api/cards', (req, res) => {
   const token = req.query.t;
   if (!token) {
-    return res.status(400).json({ error: 'Токен игрока не указан в запросе' });
+    return res.status(400).json({ error: 'Токен игрока не указан' });
   }
 
   const card = cards.find(c => String(c.token).trim() === String(token).trim());
   if (!card) {
-    return res.status(404).json({ error: 'Нумер с указанным шифром/токеном не найден' });
+    return res.status(404).json({ error: 'Карта игрока не найдена' });
   }
 
   res.json({
@@ -76,21 +94,27 @@ app.get('/api/cards', (req, res) => {
   });
 });
 
-// API: Все карточки для админки
+// Список всех 10 карт для админки
 app.get('/api/admin/cards', (req, res) => {
   res.json(cards);
 });
 
-// API: Состояние игры
+// Кнопка рандомизации шифров из админки
+app.post('/api/admin/randomize', (req, res) => {
+  randomizeCiphers();
+  res.json({ success: true, cards });
+});
+
+// Состояние
 app.get('/api/state', (req, res) => {
   res.json(gameState);
 });
 
-// API: Переключение фазы (День / Голосование / Ночь)
+// Смена фазы
 app.post('/api/admin/phase', (req, res) => {
   const { phase } = req.body;
   if (!['day', 'voting', 'night', 'ended'].includes(phase)) {
-    return res.status(400).json({ error: 'Недопустимая фаза игры' });
+    return res.status(400).json({ error: 'Недопустимая фаза' });
   }
 
   gameState.phase = phase;
@@ -99,11 +123,10 @@ app.post('/api/admin/phase', (req, res) => {
     gameState.votes = {};
   }
 
-  console.log(`[STATE] Фаза: ${phase}, Раунд: ${gameState.round}`);
   res.json({ success: true, gameState });
 });
 
-// API: Сброс игры
+// Сброс партии
 app.post('/api/admin/reset', (req, res) => {
   gameState = {
     phase: 'day',
@@ -111,61 +134,14 @@ app.post('/api/admin/reset', (req, res) => {
     votes: {},
     chatMessages: []
   };
-  loadCards();
-  console.log('[STATE] Игра сброшена в исходное состояние');
+  randomizeCiphers();
   res.json({ success: true, gameState });
 });
 
-// API: Голосование
-app.post('/api/vote', (req, res) => {
-  const { voterToken, targetId } = req.body;
-  if (!voterToken || targetId === undefined) {
-    return res.status(400).json({ error: 'Недостаточно данных для передачи бюллетеня' });
-  }
-
-  const voter = cards.find(c => c.token === voterToken);
-  if (!voter) {
-    return res.status(403).json({ error: 'Недействительный шифр гражданина' });
-  }
-
-  gameState.votes[voterToken] = targetId;
-  res.json({ success: true, votes: gameState.votes });
-});
-
-// API: Чат
-app.get('/api/chat', (req, res) => {
-  res.json(gameState.chatMessages);
-});
-
-app.post('/api/chat', (req, res) => {
-  const { token, text } = req.body;
-  if (!text || !text.trim()) {
-    return res.status(400).json({ error: 'Пустое сообщение' });
-  }
-
-  const sender = cards.find(c => c.token === token) || { name: 'Неизвестный', role: 'Гражданин' };
-
-  const message = {
-    id: Date.now(),
-    author: sender.name,
-    role: sender.role,
-    text: text.trim().slice(0, 300),
-    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  };
-
-  gameState.chatMessages.push(message);
-  if (gameState.chatMessages.length > 50) {
-    gameState.chatMessages.shift();
-  }
-
-  res.json({ success: true, message });
-});
-
-// Запуск сервера с привязкой к 0.0.0.0
+// Запуск сервера с 0.0.0.0
 app.listen(PORT, HOST, () => {
   console.log(`========================================`);
-  console.log(` Единое Государство: Сервер запущен`);
-  console.log(` Адрес: http://${HOST}:${PORT}`);
-  console.log(` Внешняя админка: /admin.html`);
+  console.log(` Сервер запущен на ${HOST}:${PORT}`);
+  console.log(` Админка: http://localhost:${PORT}/admin.html`);
   console.log(`========================================`);
 });
