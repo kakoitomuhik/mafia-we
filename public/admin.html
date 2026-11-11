@@ -1,74 +1,133 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Благодетель — панель</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мафия — Панель Ведущего</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0f111a;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      padding: 24px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #2d3748;
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    h1 { color: #f56565; font-size: 24px; }
+    .badge {
+      background: #2d3748;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .badge.day { background: #d69e2e; color: #1a202c; }
+    .badge.night { background: #4a5568; color: #fff; }
+    .badge.voting { background: #e53e3e; color: #fff; }
+    
+    .card {
+      background: #1a1d29;
+      border: 1px solid #2d3748;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    h2 { font-size: 18px; margin-bottom: 16px; color: #cbd5e0; }
+    
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+    button:hover { opacity: 0.9; }
+    .btn-day { background: #ecc94b; color: #1a202c; }
+    .btn-night { background: #4c51bf; color: #fff; }
+    .btn-vote { background: #dd6b20; color: #fff; }
+    .btn-reset { background: #e53e3e; color: #fff; margin-left: auto; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .player-card {
+      background: #12141c;
+      border: 1px solid #2d3748;
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 13px;
+    }
+    .player-card.mafia { border-left: 4px solid #e53e3e; }
+    .player-card.peaceful { border-left: 4px solid #38a169; }
+    .player-card strong { font-size: 15px; display: block; margin-bottom: 4px; }
+    .token-box {
+      margin-top: 10px;
+      padding: 6px;
+      background: #090a0f;
+      border-radius: 4px;
+      word-break: break-all;
+    }
+    .token-box a { color: #63b3ed; text-decoration: none; }
+    .token-box a:hover { text-decoration: underline; }
+    .copy-btn {
+      margin-top: 6px;
+      width: 100%;
+      background: #2d3748;
+      color: #e2e8f0;
+      padding: 6px;
+      font-size: 12px;
+    }
+  </style>
 </head>
 <body>
-  <div class="admin">
-    <h1>Благодетель <span id="night-label" style="font-size:16px; color:#7a879e; font-weight:400;"></span></h1>
-
-    <div class="tabs">
-      <button class="tab tab--active" data-tab="players">Игроки</button>
-      <button class="tab" data-tab="chats">Вопросы</button>
-      <button class="tab" data-tab="votes">Голосование</button>
-      <button class="tab" data-tab="notes">Заметки</button>
-    </div>
-
-    <div id="tab-players" class="tab-panel active">
-      <div class="mode-control">
-        <label>Режим:</label>
-        <select id="mode-select">
-          <option value="10">10 игроков</option>
-          <option value="15">15 игроков</option>
-        </select>
-        <button id="next-night" class="btn-ghost" style="border-color:#4a7fff; color:#4a7fff; margin:0;">Следующая ночь 🌙</button>
-        <button id="toggle-vote" class="btn-ghost" style="border-color:#ffd47a; color:#ffd47a; margin:0;">Открыть голосование</button>
+  <div class="container">
+    <header>
+      <div>
+        <h1>Панель Ведущего (Админка)</h1>
+        <p style="color: #718096; font-size: 13px;">Управление партией и ссылки для игроков</p>
       </div>
+      <div id="statusBadge" class="badge day">Загрузка...</div>
+    </header>
 
-      <div style="margin-bottom:15px;">
-        <button id="refresh" style="background:#4a7fff; color:white; border:none; padding:10px 20px; border-radius:8px; font-size:16px; cursor:pointer; width:100%;">
-          🔄 Обновить данные
-        </button>
-      </div>
-
-      <div id="list" class="admin__list">Нажмите "Обновить данные"</div>
-
-      <div class="control-buttons">
-        <button id="reset" class="btn-ghost danger">Сбросить игру</button>
+    <div class="card">
+      <h2>Управление фазами игры</h2>
+      <div class="controls">
+        <button class="btn-day" onclick="setPhase('day')">Включить День ☀️</button>
+        <button class="btn-vote" onclick="setPhase('voting')">Голосование 🗳️</button>
+        <button class="btn-night" onclick="setPhase('night')">Включить Ночь 🌙</button>
+        <button class="btn-reset" onclick="resetGame()">Сбросить игру 🔄</button>
       </div>
     </div>
 
-    <div id="tab-chats" class="tab-panel hidden">
-      <div id="chats" class="chats">Нажмите "Обновить данные"</div>
-    </div>
-
-    <div id="tab-votes" class="tab-panel hidden">
-      <div id="votes-list" class="admin__list">Нажмите "Обновить данные"</div>
-      <div class="control-buttons">
-        <button id="reset-votes" class="btn-ghost danger">Сбросить голоса</button>
-      </div>
-    </div>
-
-    <div id="tab-notes" class="tab-panel hidden">
-      <div style="padding: 10px;">
-        <textarea 
-          id="global-notes" 
-          placeholder="Записывайте сюда всё..." 
-          style="width: 100%; height: 350px; padding: 15px; font-size: 16px; background: rgba(10, 15, 30, 0.9); color: #fff; border: 1px solid rgba(120, 170, 255, 0.5); border-radius: 12px; resize: vertical; display: block; box-sizing: border-box;"
-        ></textarea>
-        <button 
-          id="save-notes" 
-          style="margin-top: 15px; background: rgba(120,170,255,0.2); border: 1px solid rgba(120,170,255,0.5); color: white; padding: 12px 24px; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: bold;"
-        >
-          Сохранить заметки
-        </button>
+    <div class="card">
+      <h2>Карточки игроков и ссылки раздачи</h2>
+      <div class="grid" id="playersList">
+        Загрузка карт...
       </div>
     </div>
   </div>
 
-  <script src="admin.js"></script>
+  <script src="/admin.js"></script>
 </body>
 </html>
