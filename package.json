@@ -1,7 +1,7 @@
 {
-  "name": "we-mafia",
+  "name": "mafia-we",
   "version": "1.0.0",
-  "description": "Mafia game",
+  "description": "Веб-игра Мафия",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
