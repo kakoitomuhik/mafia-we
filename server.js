@@ -3,9 +3,12 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-const PORT = process.env.PORT || 8080;
 
-// Встроенный CORS без сторонних библиотек
+// Для Нитрана берем системный порт из окружения или 8080 по умолчанию
+const PORT = process.env.PORT || 8080;
+const HOST = '0.0.0.0'; // Обязательно для облачных контейнеров
+
+// Встроенный CORS
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
@@ -19,11 +22,10 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Путь к файлу с данными карт
+// Путь к файлу с картами
 const CARDS_PATH = path.join(__dirname, 'public', 'data', 'cards.json');
 let cards = [];
 
-// Функция загрузки данных
 function loadCards() {
   try {
     if (fs.existsSync(CARDS_PATH)) {
@@ -31,41 +33,46 @@ function loadCards() {
       cards = JSON.parse(raw);
       console.log(`[DATA] Успешно загружено карт: ${cards.length}`);
     } else {
-      console.warn(`[DATA] Файл ${CARDS_PATH} не найден!`);
+      console.warn(`[DATA] cards.json не найден по пути ${CARDS_PATH}`);
       cards = [];
     }
   } catch (err) {
-    console.error('[DATA] Ошибка при чтении cards.json:', err.message);
+    console.error('[DATA] Ошибка чтения cards.json:', err.message);
     cards = [];
   }
 }
 loadCards();
 
-// Игровое состояние
+// Игровое состояние в памяти
 let gameState = {
   phase: 'day', // 'day' | 'night' | 'voting' | 'ended'
   round: 1,
   killedPlayerId: null,
-  votes: {},        // { voterToken: targetCardId }
-  chatMessages: [], // { id, author, role, text, time }
+  votes: {},
+  chatMessages: [],
   actionLogs: []
 };
 
-// Главная страница: отдаём index.html
+// Главная страница
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// API: Получить карту игрока по токену
+// Проверка здоровья сервиса для балансировщика хостинга
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', uptime: process.uptime() });
+});
+
+// API: Получить карту по токену (?t=...)
 app.get('/api/cards', (req, res) => {
   const token = req.query.t;
   if (!token) {
-    return res.status(400).json({ error: 'Параметр токена t отсутствует' });
+    return res.status(400).json({ error: 'Параметр токена ?t= не передан' });
   }
 
-  const card = cards.find(c => c.token === token);
+  const card = cards.find(c => String(c.token).trim() === String(token).trim());
   if (!card) {
-    return res.status(404).json({ error: 'Карта с таким токеном не найдена' });
+    return res.status(404).json({ error: 'Игрок с таким токеном не найден' });
   }
 
   res.json({
@@ -81,17 +88,17 @@ app.get('/api/cards', (req, res) => {
   });
 });
 
-// API: Получить все карты (для панели ведущего)
+// API: Список всех карт для админки
 app.get('/api/admin/cards', (req, res) => {
   res.json(cards);
 });
 
-// API: Получить текущее состояние партии
+// API: Текущий статус игры
 app.get('/api/state', (req, res) => {
   res.json(gameState);
 });
 
-// API: Смена фазы (день, ночь, голосование)
+// API: Переключение фазы
 app.post('/api/admin/phase', (req, res) => {
   const { phase } = req.body;
   if (!['day', 'night', 'voting', 'ended'].includes(phase)) {
@@ -101,14 +108,14 @@ app.post('/api/admin/phase', (req, res) => {
   gameState.phase = phase;
   if (phase === 'day') {
     gameState.round += 1;
-    gameState.votes = {}; // сброс дневного голосования
+    gameState.votes = {};
   }
 
-  console.log(`[GAME] Фаза: ${phase}, Раунд: ${gameState.round}`);
+  console.log(`[GAME] Смена фазы: ${phase}, Раунд: ${gameState.round}`);
   res.json({ success: true, gameState });
 });
 
-// API: Сброс игры ведущим
+// API: Сброс игры
 app.post('/api/admin/reset', (req, res) => {
   gameState = {
     phase: 'day',
@@ -118,28 +125,28 @@ app.post('/api/admin/reset', (req, res) => {
     chatMessages: [],
     actionLogs: []
   };
-  loadCards(); // перезагружаем карты из cards.json
-  console.log('[GAME] Игра сброшена');
-  res.json({ success: true, message: 'Игра успешно сброшена', gameState });
+  loadCards();
+  console.log('[GAME] Игра сброшена в исходное состояние');
+  res.json({ success: true, gameState });
 });
 
 // API: Голосование
 app.post('/api/vote', (req, res) => {
   const { voterToken, targetId } = req.body;
   if (!voterToken || targetId === undefined) {
-    return res.status(400).json({ error: 'Не переданы параметры для голосования' });
+    return res.status(400).json({ error: 'Не переданы данные для голосования' });
   }
 
   const voter = cards.find(c => c.token === voterToken);
   if (!voter) {
-    return res.status(403).json({ error: 'Игрок с таким токеном не найден' });
+    return res.status(403).json({ error: 'Недействительный токен' });
   }
 
   gameState.votes[voterToken] = targetId;
   res.json({ success: true, votes: gameState.votes });
 });
 
-// API: Сообщения чата
+// API: Чат
 app.get('/api/chat', (req, res) => {
   res.json(gameState.chatMessages);
 });
@@ -147,7 +154,7 @@ app.get('/api/chat', (req, res) => {
 app.post('/api/chat', (req, res) => {
   const { token, text } = req.body;
   if (!text || !text.trim()) {
-    return res.status(400).json({ error: 'Пустой текст сообщения' });
+    return res.status(400).json({ error: 'Пустой текст' });
   }
 
   const sender = cards.find(c => c.token === token) || { name: 'Гость', role: 'Наблюдатель' };
@@ -168,12 +175,10 @@ app.post('/api/chat', (req, res) => {
   res.json({ success: true, message });
 });
 
-// Запуск приложения
-app.listen(PORT, () => {
+// Слушаем 0.0.0.0
+app.listen(PORT, HOST, () => {
   console.log(`========================================`);
-  console.log(` Сервер запущен на http://localhost:${PORT}`);
-  console.log(` Меню:     http://localhost:${PORT}/`);
-  console.log(` Админка:  http://localhost:${PORT}/admin.html`);
-  console.log(` Карточка: http://localhost:${PORT}/card.html?t=7f3a9c21`);
+  console.log(` Сервер запущен на ${HOST}:${PORT}`);
+  console.log(` Окружение PORT = ${process.env.PORT || 'не задан (дефолт 8080)'}`);
   console.log(`========================================`);
 });
